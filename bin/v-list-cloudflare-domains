@@ -1,0 +1,119 @@
+#!/bin/bash
+# info: list cron job
+# options: USER [FORMAT]
+#
+# The function of obtaining cron job parameters.
+
+#----------------------------------------------------------#
+#                    Variable&Function                     #
+#----------------------------------------------------------#
+
+user=$1
+format=${2-shell}
+
+source $HESTIA/func/main.sh
+source $HESTIA/conf/hestia.conf
+source $HESTIA/func/cloudflare.sh
+
+
+json_list(){
+    b=1;
+    echo "{"
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$i" | jq -r '.id');
+    name=$(echo "$i" | jq -r '.name');
+    status=$(echo "$i" | jq -r '.status');
+    paused=$(echo "$i" | jq -r '.paused');
+    ns1=$(echo "$i" | jq -r '.name_servers[0]');
+    ns2=$(echo "$i" | jq -r '.name_servers[1]');
+    echo -n "$id:{
+    id:$id, 
+    name:$name, 
+    status:$status
+    pause:$paused
+    ns1:$ns1
+    ns2:$ns2
+    }"
+    if [[ "$b" -lt $(echo "$json" | jq '.result | length') ]]; then
+       echo ','
+    else
+        echo 
+    fi
+    ((b++))
+    done
+    echo "}"   
+}
+
+shell_list(){
+    echo "ID  NAME STATUS PAUSED NS1 NS2"
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$i" | jq -r '.id');
+    name=$(echo "$i" | jq -r '.name');
+    status=$(echo "$i" | jq -r '.status');
+    paused=$(echo "$i" | jq -r '.paused');
+    ns1=$(echo "$i" | jq -r '.name_servers[0]');
+    ns2=$(echo "$i" | jq -r '.name_servers[1]');
+    echo "$id $name $status $paused $ns1 $ns2"
+    done    
+}
+
+csv_list(){
+    echo "ID,NAME,STATUS,PAUSED,NS1,NS2"
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$i" | jq -r '.id');
+    name=$(echo "$i" | jq -r '.name');
+    status=$(echo "$i" | jq -r '.status');
+    paused=$(echo "$i" | jq -r '.paused');
+    ns1=$(echo "$i" | jq -r '.name_servers[0]');
+    ns2=$(echo "$i" | jq -r '.name_servers[1]');
+    echo "$id,$name,$status,$paused,$ns1,$ns2"
+    done    
+}
+
+plain_list(){
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$i" | jq -r '.id');
+    name=$(echo "$i" | jq -r '.name');
+    status=$(echo "$i" | jq -r '.status');
+    paused=$(echo "$i" | jq -r '.paused');
+    ns1=$(echo "$i" | jq -r '.name_servers[0]');
+    ns2=$(echo "$i" | jq -r '.name_servers[1]');
+    echo -e "$id\t$name\t$status\t$paused\t$ns1\t$ns2"
+    done    
+}
+#----------------------------------------------------------#
+#                    Verifications                         #
+#----------------------------------------------------------#
+
+check_args '1' "$#" 'USER [FORMAT]'
+is_format_valid 'user'
+is_object_valid 'user' 'USER' "$user"
+
+#----------------------------------------------------------#
+#                       Action                             #
+#----------------------------------------------------------#
+
+get_api_token
+
+json=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones" \
+     -H "Authorization: Bearer $TOKEN");
+     
+if [ "$(echo "$json" | jq -r '.success')" != "true" ]; then
+    echo "$(echo "$json" | jq -r '.errors')"
+    exit 3;
+fi
+
+# Listing data
+case $format in
+    json)   json_list ;;
+    plain)  plain_list ;;
+    csv)    csv_list ;;
+    shell)  shell_list ;;
+esac
+
+
+#----------------------------------------------------------#
+#                       Hestia                             #
+#----------------------------------------------------------#
+
+exit

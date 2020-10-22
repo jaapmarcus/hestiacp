@@ -1,0 +1,152 @@
+#!/bin/bash
+# info: list cron job
+# options: USER ID [FORMAT]
+#
+# The function of obtaining cron job parameters.
+
+#----------------------------------------------------------#
+#                    Variable&Function                     #
+#----------------------------------------------------------#
+
+user=$1
+id=$2
+format=${3-shell}
+
+source $HESTIA/func/main.sh
+source $HESTIA/conf/hestia.conf
+source $HESTIA/func/cloudflare.sh
+
+
+json_list(){
+    b=1;
+    echo "{"
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$json" | q '.result[$i] | .id');
+    name=$(echo "$i" | jq -r '.name');
+    status=$(echo "$i" | jq -r '.status');
+    paused=$(echo "$i" | jq -r '.paused');
+    ns1=$(echo "$i" | jq -r '.name_servers[0]');
+    ns2=$(echo "$i" | jq -r '.name_servers[1]');
+    echo -n "$id:{
+    id:$id, 
+    name:$name, 
+    status:$status
+    pause:$paused
+    ns1:$ns1
+    ns2:$ns2
+    }"
+    if [[ "$b" -lt $(echo "$json" | jq '.result | length') ]]; then
+       echo ','
+    else
+        echo 
+    fi
+    ((b++))
+    done
+    echo "}"   
+}
+
+shell_list(){
+    b=0;
+    echo "ID NAME TYPE CONTENT TTL PRIORITY PRROXYABLE PROXYIED LOCKED"
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .id');
+    name=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .name');
+    type=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .type');
+    content=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .content');
+
+    if [ "$type" = "MX" ]; then
+       priority=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .priority');
+    else
+       priority='-1'
+    fi
+    proxiable=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .proxiable');
+    proxied=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .proxied');
+    ttl=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .ttl');
+    locked=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .locked');
+    
+    echo "$id $name $type $content $ttl $priority $proxiable $proxied $locked"
+    ((b++))
+    done    
+}
+
+csv_list(){
+    b=0;
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .id');
+    name=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .name');
+    type=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .type');
+    content=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .content');
+
+    if [ "$type" = "MX" ]; then
+       priority=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .priority');
+    else
+       priority='-1'
+    fi
+    proxiable=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .proxiable');
+    proxied=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .proxied');
+    ttl=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .ttl');
+    locked=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .locked');
+    
+    echo "$id,$name,$type,$content,$ttl,$priority,$proxiable,$proxied,$locked"
+    ((b++))
+    done   
+}
+
+plain_list(){
+    b=0;
+    echo "$json" | jq -c '.result[]' | while read i; do
+    id=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .id');
+    name=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .name');
+    type=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .type');
+    content=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .content');
+
+    if [ "$type" = "MX" ]; then
+       priority=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .priority');
+    else
+       priority='-1'
+    fi
+    proxiable=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .proxiable');
+    proxied=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .proxied');
+    ttl=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .ttl');
+    locked=$(echo "$json" | jq -r --argjson index $b '.result[$index] | .locked');
+    
+    echo -e "$id\t$name\t$type\t$content\t$ttl\t$priority\t$proxiable\t$proxied\t$locked"
+    ((b++))
+    done    
+}
+#----------------------------------------------------------#
+#                    Verifications                         #
+#----------------------------------------------------------#
+
+check_args '2' "$#" 'USER ID [FORMAT]'
+is_format_valid 'user'
+is_object_valid 'user' 'USER' "$user"
+
+#----------------------------------------------------------#
+#                       Action                             #
+#----------------------------------------------------------#
+
+get_api_token
+
+json=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$id/dns_records" \
+     -H "Authorization: Bearer $TOKEN");
+     
+if [ "$(echo "$json" | jq -r '.success')" != "true" ]; then
+    echo "$(echo "$json" | jq -r '.errors')"
+    exit 3;
+fi
+
+#Listing data
+case $format in
+#    json)   json_list ;;
+    plain)  plain_list ;;
+    csv)    csv_list ;;
+    shell)  shell_list ;;
+esac
+
+
+#----------------------------------------------------------#
+#                       Hestia                             #
+#----------------------------------------------------------#
+
+exit
