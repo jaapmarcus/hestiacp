@@ -67,7 +67,10 @@ check_hestia_demo_mode
 
 # Reading user values
 source $USER_DATA/user.conf
-
+if [ -d "$HOMEDIR/$user/web/$domain" ]; then
+    # Delete domain folder if exists
+    $BIN/v-delete-fs-directory "$user" "$HOMEDIR/$user/web/$domain"
+fi
 # Creating domain directories
 $BIN/v-add-fs-directory "$user" "$HOMEDIR/$user/web/$domain"
 $BIN/v-add-fs-directory "$user" "$HOMEDIR/$user/web/$domain/public_html"
@@ -96,8 +99,9 @@ chown root:$user /var/log/$WEB_SYSTEM/domains/$domain.* $conf
 chmod 640 /var/log/$WEB_SYSTEM/domains/$domain.*
 chmod 751 $HOMEDIR/$user/web/$domain $HOMEDIR/$user/web/$domain/*
 chmod 551 $HOMEDIR/$user/web/$domain/stats $HOMEDIR/$user/web/$domain/logs
-chmod 644 $HOMEDIR/$user/web/$domain/public_*html/*
-chown $user:www-data $HOMEDIR/$user/web/$domain/public_*html
+# Limit Permission changes only to /public_html/
+chmod 644 $HOMEDIR/$user/web/$domain/public_html/*
+chown $user:www-data $HOMEDIR/$user/web/$domain/public_html
 
 # Adding PHP-FPM backend
 if [ ! -z "$WEB_BACKEND" ]; then
