@@ -36,9 +36,8 @@ class GravSetup extends BaseSetup {
             $this->getDocRoot()], $result);
         $this->appcontext->runUser('v-delete-fs-directory',[ $this->getDocRoot("grav-admin")], $result);
         $this->appcontext->runUser('v-copy-fs-file',[$this->getDocRoot(".htaccess.txt"), $this->getDocRoot(".htaccess")]);
-        
- 
-        $this -> appcontext -> runUser('v-run-cli-cmd', ['php', 
+  
+        /*$this -> appcontext -> runUser('v-run-cli-cmd', ['php', 
             $this->getDocRoot('/bin/plugin'),
             'login new-user',
             '-u '.$options['username'],
@@ -47,7 +46,10 @@ class GravSetup extends BaseSetup {
             '-P a',
             '-N '.$options['username']
          ], $status);
-        var_dump($status);
+        var_dump($status, implode('', $status -> raw));*/
+        exec('cd '.$this->getDocRoot().'; '.$this->getDocRoot('/bin/plugin').' login new-user -u '.$options['username'].' -p '.$options['password'].' -e '.$options['email'].' -P a -N '.$options['username', $output, $return_var);
+        echho '<hr />';
+        var_dump($output, $return_var);
         die();
         return ($status->code === 0);
     }
