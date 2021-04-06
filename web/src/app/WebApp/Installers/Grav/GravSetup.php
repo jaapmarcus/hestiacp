@@ -11,7 +11,7 @@ class GravSetup extends BaseSetup {
         'group' => 'cms',
         'enabled' => true,
         'version' => '1.7.9',
-        'thumbnail' => 'nextcloud-thumb.png'
+        'thumbnail' => 'grav-thumb.png'
     ];
     
     protected $appname = 'GravCMS';
