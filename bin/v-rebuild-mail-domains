@@ -16,10 +16,17 @@
 user=$1
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
+# shellcheck source=/usr/local/hestia/func/domain.sh
+# shellcheck source=/usr/local/hestia/func/ip.sh
+# shellcheck source=/usr/local/hestia/func/rebuild.sh
+# shellcheck source=/usr/local/hestia/func/syshealth.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/func/main.sh
 source $HESTIA/func/domain.sh
-source $HESTIA/func/rebuild.sh
 source $HESTIA/func/ip.sh
+source $HESTIA/func/rebuild.sh
+source $HESTIA/func/syshealth.sh
 source $HESTIA/conf/hestia.conf
 
 # Define mail user
@@ -42,7 +49,8 @@ if [ "$MAIL_SYSTEM" = 'remote' ]; then
     exit
 fi
 
-
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 #----------------------------------------------------------#
 #                       Action                             #
 #----------------------------------------------------------#
@@ -60,8 +68,12 @@ for domain in $(search_objects 'mail' 'SUSPENDED' "*" 'DOMAIN'); do
     rebuild_mail_domain_conf
     if [ ! -z "$WEB_SYSTEM" ] || [ ! -z "$PROXY_SYSTEM" ]; then
         if [ ! -z "$IMAP_SYSTEM" ]; then
-            $BIN/v-delete-sys-webmail $user $domain '' 'yes'
-            $BIN/v-add-sys-webmail $user $domain '' 'yes'
+            WEBMAIL=$(get_object_value 'web' 'DOMAIN' "$domain" "$WEBMAIL")
+            $BIN/v-delete-sys-webmail $user $domain $restart
+            $BIN/v-add-sys-webmail $user $domain $WEBMAIL $restart
+            if [ $? -ne 0 ]; then
+                $BIN/v-add-sys-webmail $user $domain '' $restart
+            fi
         fi
     fi
 done

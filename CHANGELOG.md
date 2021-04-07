@@ -1,19 +1,83 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [1.3.2] - Service Release
+## [DEVELOPMENT]
 ### Features
-- No new features have been introduced in this release.
+- Introduced single sign-on support for phpMyAdmin.
+- Introduced support for NGINX FastCGI cache.
+- Introduced support for SMTP Relay / smarthosts (server-wide or per-domain).
+- Introduced the ability to choose which webmail client to use per-domain (Roundcube or Rainloop).
+- Added B2 Backup Support for Remote Backup Location - thanks **@rez0n**!
+- Added template support for osTicket - thanks **@madito**!
+- Packages for phpMyAdmin, Roundcube, and Rainloop will be pulled directly from their upstream source instead of APT for new installations.
+- Added DNS records view to mail domains which provides DKIM, SPF, and other entries to use with an external provider.
+- Added an upgrade script to provide in-place upgrades to php7.4 (or any other version).
+
 
 ### Bugfixes
-- Fixed an issue where Let's Encrypt certificates were not regenerated when changing domain aliases (#1353)
-- Fixed an issue where user name was duplicated when editing FTP users (#1411)
+- Fixed an issue where user name was duplicated when editing FTP users. (#1411)
 - Fixed an issue where the iptables service would appear to be in a stopped state when fail2ban is stopped. (#1374)
 - Fixed an issue where the default language value was incorrectly set under Server Settings > Configure.
 - Fixed an issue with the dark theme where available updates were incorrectly displayed.
 - Fixed an issue where local and FTP backup files were not deleted when running `v-delete-user-backup`. (#1421)
-- Fixed an issue where IP addresses could not be deleted (#1423)
-- Improvements have been made to the API's error handling - thanks **@danielalexis**!
+- Fixed an issue where IP addresses could not be deleted. (#1423)
+- Fixed an issue where `v-rebuild-user` would incorrectly rebuild domain items in addition to user account configuration.
+- Fixed an issue which caused a web domain's custom document root value to be lost when restoring from backup.
+- Fixed an issue which caused a `NSPOSIXErrorDomain:100` error when using Safari/iOS (thanks **@stsimb**).
+- Fixed an issue where exim ignored the configured mail quota limit.
+- Fixed an issue where invalid character validation was performed when editing mail auto replies.
+- Fixed an issue which caused Let's Encrypt to fail when using the Moodle template (thanks **@ArturoBlanco**).
+- Fixed an issue where the MySQL `wait_timeout` value was not saved due to wrong regexp attribute (thanks **@guicapanema**).
+- Fixed an issue where nginx web statistics authorization file was placed in the wrong directory.
+- Fixed several small issues that were reported when using PostgreSQL.
+- Improved reliability of mail domains and webmail clients.
+- Improved reliability of service restarts during upgrades.
+- Improved compatibility with Blesta / WHMCS plugins.
+- Improved API error handling routines - thanks **@danielalexis**!
+- Improved backup performance through the use of multi-threading when creating archives using the `zstd` compression type.
+- Improved error handling when creating firewall rules.
+- Improved handling of suspended users and domains to allow deletion without unsuspension.
+- Improved dependencies over package control to install `lsb-release` and `zstd`.
+- Improved SFTP connection handling to be case insensitive (thanks **@lazzurs**).
+- Improved domain validation to prevent creating subdomains when the top-level domain belongs to another account (thanks **@KuJoe** and **@sickcodes**).
+- Improved IDN domain handling to resolve issues with Let's Encrypt SSL and mail domain services.
+- Added private folder to openbasedir permissions for all main templates.
+- Disabled changing backup folder via Web UI because it used symbolic link instead of mount causing issues with restore mail / user files.
+- Fixed XSS vulnerability in `v-add-sys-ip` and user history log (thanks **@numanturle**).
+- Fixed remote code execution vulnerability which could occur when deleting SSH keys (thanks **@numanturle**).
+- Improve how Quick install of web apps are handled and allow users added apps to be maintained in list view. 
+
+## [1.3.5] - Service Release
+### Features
+- No new features have been introduced in this release.
+
+### Bugfixes
+- Updated APT repository key for PHP from packages.sury.org (https://forum.hestiacp.com/t/apt-upgrade-failed-gpg-error-packages-sury-org)
+- Updated phpMyAdmin to v5.1.0.
+
+## [1.3.4] - Service Release
+### Features
+- No new features have been introduced in this release.
+
+### Bugfixes
+- Fixed xss vulnerability in v-add-sys-ip and user history log (thanks **@numanturle**)
+- Fixed remote execution possibility when deleting ssh key (thanks **@numanturle**)
+
+## [1.3.3] - Service Release
+### Bugfixes
+- Improved if web folder already exists and do not follow symlink on chmod (thanks @0xGsch and @kikoas1995).
+- Improved api key authentification to prevent brute force attacks.
+- Improved ssh keys folder permission to prevent unauthorized access.
+
+## [1.3.2] - Service Release
+### Features
+- Added PHP v8.0 support for multiphp environment.
+
+### Bugfixes
+- Improved session token handling in login as function, thanks to Vulnerability Laboratory - [Evolution Security GmbH]™.
+- Fixed an where fpm pool config was not deleted when changing backend template.
+- Improved bats testing with multiphp (5.6-8.0) tests.
+- Fixed an issue where full webmail path was loaded as default value.
 
 ## [1.3.1] - Service Release
 ### Features

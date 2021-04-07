@@ -17,7 +17,9 @@ role=$2
 
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/conf/hestia.conf
 
 
@@ -32,6 +34,9 @@ is_format_valid 'user' 'role'
 is_object_valid 'user' 'USER' "$user"
 
 is_object_unsuspended 'user' 'USER' "$user"
+
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 
 #----------------------------------------------------------#
 #                       Action                             #

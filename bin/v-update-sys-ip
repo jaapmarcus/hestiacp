@@ -19,8 +19,11 @@
 source /etc/profile
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/func/ip.sh
 source $HESTIA/func/ip.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/conf/hestia.conf
 
 
@@ -28,6 +31,8 @@ source $HESTIA/conf/hestia.conf
 #                    Verifications                         #
 #----------------------------------------------------------#
 
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -123,6 +128,14 @@ if [ ! -e "$HESTIA/data/ips/$pub_ip" ]; then
     fi
 fi
 
+# Update ip helo for exim
+if [ ! -z "$MAIL_SYSTEM" ]; then
+    helo=$(is_ip_rdns_valid $pub_ip)
+
+    if [ ! -z "$helo" ]; then
+        $BIN/v-change-sys-ip-helo $ip $helo
+    fi
+fi
 
 #----------------------------------------------------------#
 #                       Hestia                             #

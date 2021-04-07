@@ -42,6 +42,7 @@ upgrade_welcome_message
 
 # Perform upgrade health check and refresh configuration before upgrading
 upgrade_health_check | tee -a $LOG
+upgrade_replace_default_config
 upgrade_refresh_config
 
 # Back up existing configuration files and templates
@@ -65,6 +66,12 @@ upgrade_rebuild_dns_templates | tee -a $LOG
 
 # Upgrade phpMyAdmin if applicable
 upgrade_phpmyadmin | tee -a $LOG
+
+# Upgrade Roundcube if applicable
+upgrade_roundcube | tee -a $LOG
+
+# Upgrade Rainloop if applicable
+upgrade_rainloop | tee -a $LOG
 
 # Set new version number in hestia.conf
 upgrade_set_version $new_version

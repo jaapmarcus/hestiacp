@@ -2,6 +2,9 @@
 
 # Hestia Control Panel - Upgrade Control Script
 
+# Import system health check and repair library
+source $HESTIA/func/syshealth.sh
+
 #####################################################################
 #######                Functions & Initialization             #######
 #####################################################################
@@ -16,6 +19,7 @@ is_debug_build() {
 }
 
 upgrade_health_check() {
+    
     echo "============================================================================="
     echo "[ ! ] Performing system health check before proceeding with installation...  "
     # Perform basic health check against hestia.conf to ensure that
@@ -30,103 +34,8 @@ upgrade_health_check() {
         echo
     fi
 
-    # Release branch
-    if [ -z "$RELEASE_BRANCH" ]; then
-        echo "[ ! ] Adding missing variable to hestia.conf: RELEASE_BRANCH ('release')"
-        $BIN/v-change-sys-config-value 'RELEASE_BRANCH' 'release'
-    fi
+    syshealth_repair_system_config
 
-    # Webmail alias
-    if [ ! -z "$IMAP_SYSTEM" ]; then
-        if [ -z "$WEBMAIL_ALIAS" ]; then
-            echo "[ ! ] Adding missing variable to hestia.conf: WEBMAIL_ALIAS ('webmail')"
-            $BIN/v-change-sys-config-value 'WEBMAIL_ALIAS' 'webmail'
-        fi
-    fi
-
-    # phpMyAdmin/phpPgAdmin alias
-    if [ ! -z "$DB_SYSTEM" ]; then
-        if [ "$DB_SYSTEM" = "mysql" ]; then
-            if [ -z "$DB_PMA_ALIAS" ]; then 
-                echo "[ ! ] Adding missing variable to hestia.conf: DB_PMA_ALIAS ('phpMyAdmin')"
-                $BIN/v-change-sys-config-value 'DB_PMA_ALIAS' 'phpMyAdmin'
-            fi
-        fi
-        if [ "$DB_SYSTEM" = "pgsql" ]; then
-            if [ -z "$DB_PGA_ALIAS" ]; then 
-                echo "[ ! ] Adding missing variable to hestia.conf: DB_PGA_ALIAS ('phpPgAdmin')"
-                $BIN/v-change-sys-config-value 'DB_PGA_ALIAS' 'phpPgAdmin'
-            fi
-        fi
-    fi
-
-    # Backup compression level
-    if [ -z "$BACKUP_GZIP" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: BACKUP_GZIP ('9')"
-        $BIN/v-change-sys-config-value 'BACKUP_GZIP' '9'
-    fi
-
-    # Theme
-    if [ -z "$THEME" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: THEME ('default')"
-        $BIN/v-change-sys-theme 'default'
-    fi
-
-    # Default language
-    if [ -z "$LANGUAGE" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: LANGUAGE ('en')"
-        $BIN/v-change-sys-language 'en'
-    fi
-
-    # Disk Quota
-    if [ -z "$DISK_QUOTA" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: DISK_QUOTA ('no')"
-        $BIN/v-change-sys-config-value 'DISK_QUOTA' 'no'
-    fi
-
-    # CRON daemon
-    if [ -z "$CRON_SYSTEM" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: CRON_SYSTEM ('cron')"
-        $BIN/v-change-sys-config-value 'CRON_SYSTEM' 'cron'
-    fi
-
-    # Backend port
-    if [ -z "$BACKEND_PORT" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: BACKEND_PORT ('8083')"
-        $BIN/v-change-sys-port '8083' >/dev/null 2>&1
-    fi
-
-    # Upgrade: Send email notification
-    if [ -z "$UPGRADE_SEND_EMAIL" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: UPGRADE_SEND_EMAIL ('true')"
-        $BIN/v-change-sys-config-value 'UPGRADE_SEND_EMAIL' 'true'
-    fi
-
-    # Upgrade: Send email notification
-    if [ -z "$UPGRADE_SEND_EMAIL_LOG" ]; then 
-        echo "[ ! ] Adding missing variable to hestia.conf: UPGRADE_SEND_EMAIL_LOG ('false')"
-        $BIN/v-change-sys-config-value 'UPGRADE_SEND_EMAIL_LOG' 'false'
-    fi
-
-    # File Manager
-    if [ -z "$FILE_MANAGER" ]; then
-        echo "[ ! ] Adding missing variable to hestia.conf: FILE_MANAGER ('true')"
-        echo "[ ! ] File Manager is enabled but not installed, repairing components..."
-        $BIN/v-add-sys-filemanager quiet
-    fi
-    
-    # Support for ZSTD / GZIP Change
-    if [ -z "$BACKUP_MODE" ]; then
-        echo "[ ! ] Setting zstd backup compression type as default..."
-        $BIN/v-change-sys-config-value "BACKUP_MODE" "zstd"
-    fi
-    
-    # Login style switcher
-    if [ -z "$LOGIN_STYLE" ]; then
-        echo "[ ! ] Adding missing variable to hestia.conf: LOGIN_STYLE ('default')"
-        $BIN/v-change-sys-config-value "LOGIN_STYLE" "default"
-    fi
-    
     echo "[ * ] Health check complete. Starting upgrade from $VERSION to $new_version..."
     echo "============================================================================="
 }
@@ -208,9 +117,8 @@ upgrade_complete_message() {
     echo "Forum:    https://forum.hestiacp.com/                                        "
     echo "Discord:  https://discord.gg/nXRUZch                                         "
     echo "GitHub:   https://github.com/hestiacp/hestiacp/                              "
-    echo "E-mail:   info@hestiacp.com                                                  "
     echo 
-    echo "Help support the Hestia Contol Panel project by donating via PayPal:         "
+    echo "Help support the Hestia Control Panel project by donating via PayPal:        "
     echo "https://www.hestiacp.com/donate                                              "
     echo
     echo "Made with love & pride by the open-source community around the world.        "
@@ -623,6 +531,30 @@ upgrade_filemanager_update_config() {
     fi
 }
 
+upgrade_roundcube(){
+    if [ "UPGRADE_UPDATE_ROUNDCUBE" = "true" ]; then
+        if [ ! -z "$(echo "$WEBMAIL_SYSTEM" | grep -w 'roundcube')" ]; then
+            rc_version=$(cat /var/lib/roundcube/index.php | grep -o -E '[0-9].[0-9].[0-9]+' | head -1);
+            if [ "$rc_version" == "$rc_v" ]; then
+                echo "[ * ] Upgrading Roundcube to version v$rc_v..."
+                $HESTIA/bin/v-add-sys-roundcube
+            fi
+        fi
+    fi
+}
+
+upgrade_rainloop(){
+    if [ "UPGRADE_UPDATE_RAINLOOP" = "true" ]; then
+        if [ ! -z "$(echo "$WEBMAIL_SYSTEM" | grep -w 'rainloop')" ]; then
+            rc_version=$(cat /var/lib/rainloop/data/VERSION);
+            if [ "$rc_version" == "$rc_v" ]; then
+                echo "[ * ] Upgrading Rainloop to version v$rl_v..."
+                $HESTIA/bin/v-add-sys-rainloop
+            fi
+        fi
+    fi
+}
+
 upgrade_rebuild_web_templates() {
     if [ "$UPGRADE_UPDATE_WEB_TEMPLATES" = "true" ]; then
         echo "[ ! ] Updating default web domain templates..."
@@ -652,6 +584,7 @@ upgrade_rebuild_users() {
             echo "[ * ] Rebuilding user accounts and domains, this may take a few minutes..."
         fi
         for user in $($HESTIA/bin/v-list-sys-users plain); do
+        export restart="no"
             if [ "$DEBUG_MODE" = "true" ]; then
                 echo "      - $user:"
             else
@@ -691,17 +624,20 @@ upgrade_rebuild_users() {
     fi
 }
 
-upgrade_restart_services() {
-    # Refresh user interface theme
-    if [ "$THEME" ]; then
-        if [ "$THEME" != "default" ]; then
-            echo "[ * ] Applying user interface updates..."
-            $BIN/v-change-sys-theme $THEME
-        fi
+upgrade_replace_default_config() {
+    if [ "$UPGRADE_REPLACE_KNOWN_KEYS" ]; then
+        syshealth_update_web_config_format
+        syshealth_update_mail_config_format
+        syshealth_update_dns_config_format
+        syshealth_update_db_config_format
+        syshealth_update_user_config_format
     fi
+}
 
+upgrade_restart_services() {
     if [ "$UPGRADE_RESTART_SERVICES" = "true" ]; then
         echo "[ * ] Restarting services..."
+        export restart="yes"
         sleep 2
         if [ ! -z "$MAIL_SYSTEM" ]; then
             if [ "$DEBUG_MODE" = "true" ]; then
@@ -732,7 +668,7 @@ upgrade_restart_services() {
                 if [ "$DEBUG_MODE" = "true" ]; then
                     echo "      - php$v-fpm"
                 fi
-                $BIN/v-restart-service php$v-fpm $restart
+                $BIN/v-restart-service php$v-fpm
             fi
         done
         if [ ! -z "$FTP_SYSTEM" ]; then
@@ -745,20 +681,20 @@ upgrade_restart_services() {
             if [ "$DEBUG_MODE" = "true" ]; then
                 echo "      - $FIREWALL_EXTENSION"
             fi
-            $BIN/v-restart-service $FIREWALL_EXTENSION yes
+            $BIN/v-restart-service $FIREWALL_EXTENSION
         fi
         # Restart SSH daemon service
         if [ "$DEBUG_MODE" = "true" ]; then
             echo "      - sshd"
         fi
-        $BIN/v-restart-service ssh $restart
+        $BIN/v-restart-service ssh
     fi
 
     # Always restart the Hestia Control Panel service
     if [ "$DEBUG_MODE" = "true" ]; then
         echo "      - hestia"
     fi
-    $BIN/v-restart-service hestia $restart
+    $BIN/v-restart-service hestia
 }
 
 upgrade_perform_cleanup() {

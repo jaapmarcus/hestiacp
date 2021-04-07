@@ -42,6 +42,11 @@ $dist_config['services']['Filegator\Services\Storage\Filesystem']['config']['ada
         ]);
     };
 
+$dist_config['services']['Filegator\Services\Archiver\ArchiverInterface'] = [
+    'handler' => '\Filegator\Services\Archiver\Adapters\HestiaZipArchiver',
+    'config' => [],
+];
+
 $dist_config['services']['Filegator\Services\Auth\AuthInterface'] = [
         'handler' => '\Filegator\Services\Auth\Adapters\HestiaAuth',
         'config' => [
@@ -61,11 +66,26 @@ $dist_config['services']['Filegator\Services\View\ViewInterface']['config'] = [
     'add_to_body' => '
 <script>
     var checkVueLoaded = setInterval(function() {
-        if (document.getElementsByClassName("navbar-item").length) {
+        if (document.getElementsByClassName("container").length) {
             clearInterval(checkVueLoaded);
             var navProfile = document.getElementsByClassName("navbar-item profile")[0]; navProfile.replaceWith(navProfile.cloneNode(true))
             document.getElementsByClassName("navbar-item logout")[0].text="Exit to Control Panel \u00BB";
-        }
+            div = document.getElementsByClassName("container")[0];
+            callback = function(){
+                if (document.getElementsByClassName("navbar-item logout")[0]){
+                    if ( document.getElementsByClassName("navbar-item logout")[0].text != "Exit to Control Panel \u00BB" ){
+                        var navProfile = document.getElementsByClassName("navbar-item profile")[0]; navProfile.replaceWith(navProfile.cloneNode(true))
+                        document.getElementsByClassName("navbar-item logout")[0].text="Exit to Control Panel \u00BB";
+                    }
+                }
+            }
+            config = {
+                childList:true,
+                subtree:true
+            }
+            observer = new MutationObserver(callback);
+            observer.observe(div,config);
+        }    
     }, 200);
 </script>',
 ];

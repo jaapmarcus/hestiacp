@@ -16,8 +16,8 @@ DNSTPL=$HESTIA/data/templates/dns
 RRD=$HESTIA/web/rrd
 SENDMAIL="$HESTIA/web/inc/mail-wrapper.php"
 HESTIA_GIT_REPO="https://raw.githubusercontent.com/hestiacp/hestiacp"
-HESTIA_THEMES="$HESTIA_INSTALL_DIR/themes"
-HESTIA_THEMES_CUSTOM="$HESTIA/data/templates/themes"
+HESTIA_THEMES="$HESTIA/web/css/themes"
+HESTIA_THEMES_CUSTOM="$HESTIA/web/css/themes/custom"
 SCRIPT="$(basename $0)"
 
 # Return codes
@@ -239,7 +239,7 @@ is_object_new() {
         object=$(grep "$2='$3'" $USER_DATA/$1.conf)
     fi
     if [ ! -z "$object" ]; then
-        check_result $E_EXISTS "$2=$3 is already exists"
+        check_result $E_EXISTS "$2=$3 already exists"
     fi
 }
 
@@ -346,7 +346,7 @@ is_object_value_empty() {
     parse_object_kv_list "$str"
     eval value=$4
     if [ ! -z "$value" ] && [ "$value" != 'no' ]; then
-        check_result $E_EXISTS "${4//$}=$value is already exists"
+        check_result $E_EXISTS "${4//$}=$value already exists"
     fi
 }
 
@@ -676,7 +676,7 @@ is_number_format_valid() {
 
 # Autoreply format validator
 is_autoreply_format_valid() {
-    if [[ "$1" =~ [$|\`] ]] || [ 10240 -le ${#1} ]; then
+    if [ 10240 -le ${#1} ]; then
         check_result $E_INVALID "invalid autoreply format :: $1"
     fi
 }
@@ -922,7 +922,7 @@ is_service_format_valid() {
 }
 
 is_hash_format_valid() {
-  if ! [[ "$1" =~ ^[_A-Za-z0-9]{1,32}$ ]]; then
+  if ! [[ "$1" =~ ^[-_A-Za-z0-9]{1,32}$ ]]; then
         check_result $E_INVALID "invalid $2 format :: $1"
     fi    
 }
@@ -962,6 +962,7 @@ is_format_valid() {
                 host)           is_object_format_valid "$arg" "$arg_name" ;;
                 hour)           is_cron_format_valid "$arg" $arg_name ;;
                 id)             is_int_format_valid "$arg" 'id' ;;
+                iface)          is_interface_format_valid "$arg" ;;
                 ip)             is_ip_format_valid "$arg" ;;
                 ip_name)        is_domain_format_valid "$arg" 'IP name';;
                 ip_status)      is_ip_status_format_valid "$arg" ;;
@@ -1153,6 +1154,12 @@ multiphp_default_version() {
     echo "$sys_phpversion"
 }
 
+is_hestia_package(){
+    if [ -z "$(echo $1 | grep -w $2)" ]; then
+        check_result $E_INVALID "$2 package is not controlled by hestiacp"
+    fi
+}
+
 # Run arbitrary cli commands with dropped privileges
 # Note: setpriv --init-groups is not available on debian9 (util-linux 2.29.2)
 # Input:
@@ -1164,4 +1171,15 @@ user_exec() {
     user_groups=${user_groups//\ /,}
 
     setpriv --groups "$user_groups" --reuid "$user" --regid "$user" -- $@
+}
+
+# Simple chmod wrapper that skips symlink files after glob expand
+no_symlink_chmod() {
+    local filemode=$1; shift;
+
+    for i in "$@"; do
+        [[ -L ${i} ]] && continue
+
+        chmod "${filemode}" "${i}"
+    done
 }

@@ -17,8 +17,11 @@ user=$1
 database=$2
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/func/db.sh
 source $HESTIA/func/db.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/conf/hestia.conf
 
 
@@ -33,6 +36,8 @@ is_object_valid 'user' 'USER' "$user"
 is_object_valid 'db' 'DB' "$database"
 is_object_suspended 'db' 'DB' "$database"
 
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 
 #----------------------------------------------------------#
 #                       Action                             #

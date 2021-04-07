@@ -22,6 +22,9 @@ domain_idn=$2
 restart=$3
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
+# shellcheck source=/usr/local/hestia/func/domain.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/func/main.sh
 source $HESTIA/func/domain.sh
 source $HESTIA/func/ip.sh
@@ -41,9 +44,7 @@ check_args '2' "$#" 'USER DOMAIN [RESTART]'
 is_format_valid 'user' 'domain'
 is_system_enabled "$WEB_SYSTEM" 'WEB_SYSTEM'
 is_object_valid 'user' 'USER' "$user"
-is_object_unsuspended 'user' 'USER' "$user"
 is_object_valid 'web' 'DOMAIN' "$domain"
-is_object_unsuspended 'web' 'DOMAIN' "$domain"
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
@@ -80,6 +81,11 @@ if [ "$SSL" = 'yes' ]; then
     rm -f $USER_DATA/ssl/$domain.*
 fi
 
+if [ "$FASTCGI_CACHE" = "yes" ]; then
+    # make sure no trails left behind 
+    $BIN/v-delete-fastcgi-cache $user $domain
+fi
+
 # Deleting domain from web.conf
 sed -i "/DOMAIN='$domain'/ d" $USER_DATA/web.conf
 
@@ -110,7 +116,6 @@ rm -f /var/log/$WEB_SYSTEM/domains/$domain.error*
 rm -rf $HOMEDIR/$user/web/$domain
 rm -rf $HOMEDIR/$user/conf/web/$domain
 
-
 #----------------------------------------------------------#
 #                       Hestia                             #
 #----------------------------------------------------------#
@@ -124,6 +129,13 @@ fi
 if [ ! -z "$ALIAS" ]; then
     aliases=$(echo $ALIAS | tr ',' '\n' | wc -l )
     decrease_user_value "$user" '$U_WEB_ALIASES' "$aliases"
+fi
+
+# Check if is suspended to decrease the suspended value
+if [ ! -z "$SUSPENDED" ]; then
+    if [ "$SUSPENDED" == "yes" ]; then
+        decrease_user_value "$user" '$SUSPENDED_WEB'
+    fi
 fi
 
 # Restarting web server

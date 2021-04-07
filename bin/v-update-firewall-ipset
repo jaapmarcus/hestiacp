@@ -17,7 +17,9 @@ force=${1:-no}
 
 # Includes
 source /etc/profile.d/hestia.sh
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/conf/hestia.conf
 
 
@@ -27,6 +29,9 @@ source $HESTIA/conf/hestia.conf
 
 is_boolean_format_valid "$force" 'bool (yes/no)'
 is_system_enabled "$FIREWALL_SYSTEM" 'FIREWALL_SYSTEM'
+
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 
 ipset_hstobject='../../data/firewall/ipset'
 

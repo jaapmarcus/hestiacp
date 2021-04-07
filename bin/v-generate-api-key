@@ -12,19 +12,26 @@
 #                    Variable&Function                     #
 #----------------------------------------------------------#
 
+# Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
+source $HESTIA/func/main.sh
+
 keygen() {
     < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;
 }
 KEYS="$HESTIA/data/keys/"
 HASH=$(keygen)
 
-
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 #----------------------------------------------------------#
 #                       Action                             #
 #----------------------------------------------------------#
 
 if [ ! -d ${KEYS} ]; then
-  mkdir -p ${KEYS}
+    mkdir -p ${KEYS}
+    chown admin:root ${KEYS}
+    chmod 750 ${KEYS}
 fi
 
 if [[ -e ${KEYS}${HASH} ]] ; then

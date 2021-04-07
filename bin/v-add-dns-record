@@ -33,8 +33,11 @@ if [ -z "$priority" ]; then
 fi
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/func/domain.sh
 source $HESTIA/func/domain.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/conf/hestia.conf
 
 # Null priority for none MX/SRV records
@@ -48,6 +51,11 @@ if [[ $rtype =~ NS|CNAME|MX|PTR|SRV ]]; then
     if [ -z "$trailing_dot" ]; then
         dvalue="$dvalue."
     fi
+fi
+
+if [[ $rtype =~ NS|CNAME|MX|PTR|SRV ]]; then
+    dvalue=$(idn -t --quiet -a "$dvalue" )
+    record=$(idn -t --quiet -a "$record" )
 fi
 
 # Cleanup quotes on dvalue

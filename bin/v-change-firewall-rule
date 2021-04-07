@@ -26,7 +26,9 @@ protocol=$(echo $protocol|tr '[:lower:]' '[:upper:]')
 comment=$6
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/conf/hestia.conf
 
 # Sort function
@@ -42,7 +44,7 @@ sort_fw_rules() {
 #                    Verifications                         #
 #----------------------------------------------------------#
 
-check_args '5' "$#" 'RULE ACTION IP  PORT [PROTOCOL] [COMMENT]'
+check_args '4' "$#" 'RULE ACTION IP PORT [PROTOCOL] [COMMENT]'
 is_format_valid 'rule' 'action' 'protocol' 'port_ext'
 if [ ! -z "$comment" ]; then
     is_format_valid 'comment'

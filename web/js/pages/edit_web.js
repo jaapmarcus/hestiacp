@@ -2,7 +2,7 @@ App.Actions.WEB.update_custom_doc_root = function(elm, hint) {
     var prepath = $('input[name="v-custom-doc-root_prepath"]').val();
     var domain = $('select[name="v-custom-doc-domain"]').val();
     var folder = $('input[name="v-custom-doc-folder"]').val();
-    console.log(domain, folder);
+
     $('.custom_docroot_hint').html(prepath+domain+'/public_html/'+folder);
 }
 App.Listeners.DB.keypress_custom_folder = function() {
@@ -235,6 +235,28 @@ $(function() {
             $('.stats-auth').show();
         }
     });
+    
+    $('select[name="v_nginx_cache"]').change(function(evt){
+        var select = $(evt.target);
+    
+        if(select.val() != 'yes'){
+            $('#v-clear-cache').hide();
+            $('#v_nginx_cache_length').hide();
+        } else {
+            $('#v-clear-cache').show();
+            $('#v_nginx_cache_length').show();
+        }
+    });  
+    
+    $('select[name="v_proxy_template"]').change(function(evt){
+        var select = $(evt.target);
+
+        if(select.val() != 'caching'){
+            $('#v-clear-cache').hide();
+        } else {
+            $('#v-clear-cache').show();
+        }
+    });  
 
     $('#vstobjects').on('submit', function(evt) {
         $('input[disabled]').each(function(i, elm) {
@@ -274,3 +296,12 @@ function elementHideShow(elementToHideOrShow){
     var el = document.getElementById(elementToHideOrShow);
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+
+$('.v-redirect-custom-value').change( function(){
+    
+    if(this.value == "custom"){
+        $('#custom_redirect').show();
+    }else{
+        $('#custom_redirect').hide();
+    }
+})

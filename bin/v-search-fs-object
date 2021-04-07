@@ -12,8 +12,11 @@ object=$2
 path=$3
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
 
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#

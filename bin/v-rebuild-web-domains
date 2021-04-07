@@ -17,10 +17,17 @@ user=$1
 restart=$2
 
 # Includes
+# shellcheck source=/usr/local/hestia/func/main.sh
+# shellcheck source=/usr/local/hestia/func/domain.sh
+# shellcheck source=/usr/local/hestia/func/ip.sh
+# shellcheck source=/usr/local/hestia/func/rebuild.sh
+# shellcheck source=/usr/local/hestia/func/syshealth.sh
+# shellcheck source=/usr/local/hestia/conf/hestia.conf
 source $HESTIA/func/main.sh
 source $HESTIA/func/domain.sh
 source $HESTIA/func/ip.sh
 source $HESTIA/func/rebuild.sh
+source $HESTIA/func/syshealth.sh
 source $HESTIA/conf/hestia.conf
 
 
@@ -34,7 +41,8 @@ is_system_enabled "$WEB_SYSTEM" 'WEB_SYSTEM'
 is_object_valid 'user' 'USER' "$user"
 is_object_unsuspended 'user' 'USER' "$user"
 
-
+# Perform verification if read-only mode is enabled
+check_hestia_demo_mode
 #----------------------------------------------------------#
 #                       Action                             #
 #----------------------------------------------------------#
@@ -116,12 +124,14 @@ done
 # Updating user counters
 $BIN/v-update-user-counters $user
 
-# Restarting web server
-$BIN/v-restart-web $restart
-check_result $? "Web restart failed" >/dev/null
+if [ "$restart" = "yes" ]; then
+    # Restarting web server
+    $BIN/v-restart-web $restart
+    check_result $? "Web restart failed" >/dev/null
 
-$BIN/v-restart-proxy $restart
-check_result $? "Proxy restart failed" >/dev/null
+    $BIN/v-restart-proxy $restart
+    check_result $? "Proxy restart failed" >/dev/null
+fi
 
 # Logging
 log_event "$OK" "$ARGUMENTS"
