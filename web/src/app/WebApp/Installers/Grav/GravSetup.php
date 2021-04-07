@@ -10,7 +10,7 @@ class GravSetup extends BaseSetup {
         'name' => 'Grav',
         'group' => 'cms',
         'enabled' => true,
-        'version' => '1.7.9',
+        'version' => '1.7.10',
         'thumbnail' => 'grav-thumb.png'
     ];
     
@@ -24,7 +24,7 @@ class GravSetup extends BaseSetup {
             ],
         'database' => false,
         'resources' => [
-           'archive'  => [ 'src' => 'https://github.com/getgrav/grav/releases/download/1.7.9/grav-admin-v1.7.9.zip' ]
+           'archive'  => [ 'src' => 'https://github.com/getgrav/grav/releases/download/1.7.10/grav-admin-v1.7.10.zip' ]
         ],
     ];
     
