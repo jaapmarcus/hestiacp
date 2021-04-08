@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# info: Sync new domain with cloudflare
+# options: USER DOMAIN
+# labels: dns
+#
+# example: 
+# Sync newly add domain to cloudflare
+
+#----------------------------------------------------------#
+#                    Variable&Function                     #
+#----------------------------------------------------------#
+
+user=$1
+domain=$2
+
+# shellcheck source=/usr/local/hestia/func/main.sh
+source $HESTIA/func/main.sh
+# shellcheck source=/usr/local/hestia/func/hestia.conf
+source $HESTIA/conf/hestia.conf
+# shellcheck source=/usr/local/hestia/func/cloudflare.sh
+source $HESTIA/func/cloudflare.sh
+
+#----------------------------------------------------------#
+#                    Verifications                         #
+#----------------------------------------------------------#
+
+check_args '2' "$#" 'USER DOMAIN'
