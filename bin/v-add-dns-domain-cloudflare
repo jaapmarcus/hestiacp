@@ -16,13 +16,40 @@ domain=$2
 
 # shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
-# shellcheck source=/usr/local/hestia/func/hestia.conf
-source $HESTIA/conf/hestia.conf
+# shellcheck source=/usr/local/hestia/func/domain.sh
+source $HESTIA/func/domain.sh
 # shellcheck source=/usr/local/hestia/func/cloudflare.sh
 source $HESTIA/func/cloudflare.sh
+# shellcheck source=/usr/local/hestia/func/hestia.conf
+source $HESTIA/conf/hestia.conf
+
 
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
 
 check_args '2' "$#" 'USER DOMAIN'
+is_format_valid 'user' 'domain'
+get_api_token
+
+format_domain_idn
+#----------------------------------------------------------#
+#                       Action                             #
+#----------------------------------------------------------#
+
+# check if domain already exits in Cloudflare
+cfdomain=$($HESTIA/bin/v-list-cloudflare-domains $user json);
+match=$(echo "$cfdomain" | grep "\"$domain_idn\"")
+if [ ! -z "$match" ]; then
+    echo "Domain allready know need to update later to sync it in cloudflare"   
+    exit 2;
+else
+    # Create new zone
+    create_cfzone=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones" \
+    -H "Authorization: Bearer $CF_TOKEN" \
+    -H "Content-Type: application/json" \
+    --data "{\"name\":\"$domain_idn\",\"account\":{\"id\":\"$CF_ACCOUNT_ID\"},\"jump_start\":true,\"type\":\"full\"}"
+    );
+    echo "$create_cfzone"
+fi
+

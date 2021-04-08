@@ -178,34 +178,40 @@ dns_rec="$dns_rec SUSPENDED='no' TIME='$time' DATE='$date'"
 echo "$dns_rec" >> $USER_DATA/dns.conf
 chmod 660 $USER_DATA/dns.conf
 
-# Creating system configs
-if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
-    if [ -e '/etc/named.conf' ]; then
-        dns_conf='/etc/named.conf'
-        dns_group='named'
-    else
-        dns_conf='/etc/bind/named.conf'
-        dns_group='bind'
+if [ -z "$CF_TOKEN" ]; then
+    # Creating system configs
+    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+        if [ -e '/etc/named.conf' ]; then
+            dns_conf='/etc/named.conf'
+            dns_group='named'
+        else
+            dns_conf='/etc/bind/named.conf'
+            dns_group='bind'
+        fi
+    
+        # Adding zone in named.conf
+        named="zone \"$domain_idn\" {type master; file"
+        named="$named \"$HOMEDIR/$user/conf/dns/$domain.db\";};"
+        echo "$named" >> $dns_conf
+    
+        # Updating domain dns zone
+        update_domain_zone
+    
+        # Changing permissions
+        chmod 640 $HOMEDIR/$user/conf/dns/$domain.db
+        chown root:$dns_group $HOMEDIR/$user/conf/dns/$domain.db
     fi
-
-    # Adding zone in named.conf
-    named="zone \"$domain_idn\" {type master; file"
-    named="$named \"$HOMEDIR/$user/conf/dns/$domain.db\";};"
-    echo "$named" >> $dns_conf
-
-    # Updating domain dns zone
-    update_domain_zone
-
-    # Changing permissions
-    chmod 640 $HOMEDIR/$user/conf/dns/$domain.db
-    chown root:$dns_group $HOMEDIR/$user/conf/dns/$domain.db
+    
+    # Updating dns-cluster queue
+    if [ ! -z "$DNS_CLUSTER" ]; then
+        cmd="$BIN/v-add-remote-dns-domain $user $domain yes"
+        echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+    fi
+else
+   cmd="$BIN/v-add-dns-domain-cloudflare $user $domain"
+   echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe 
 fi
 
-# Updating dns-cluster queue
-if [ ! -z "$DNS_CLUSTER" ]; then
-    cmd="$BIN/v-add-remote-dns-domain $user $domain yes"
-    echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
-fi
 
 
 #----------------------------------------------------------#
