@@ -22,32 +22,11 @@ source $HESTIA/func/main.sh
 
 # JSON list function
 json_list() {
-    IFS=$'\n'
-    i=1
-    objects=$(grep "DB=" $USER_DATA/db.conf |wc -l)
-    echo "{"
-    while read str; do
-        parse_object_kv_list "$str"
-        echo -n '    "'$DB'": {
-        "DATABASE": "'$DB'",
-        "DBUSER": "'$DBUSER'",
-        "HOST": "'$HOST'",
-        "TYPE": "'$TYPE'",
-        "CHARSET": "'$CHARSET'",
-        "U_DISK": "'$U_DISK'",
-        "SUSPENDED": "'$SUSPENDED'",
-        "TIME": "'$TIME'",
-        "DATE": "'$DATE'"
-    }'
-        if [ "$i" -lt "$objects" ]; then
-            echo ','
-        else
-            echo
-        fi
-        ((i++))
-    done < <(cat $USER_DATA/db.conf)
-    echo '}'
+    jq -s <<< $(while read str; do
+        parse_object_kv_list_json_non_eval "$str"
+    done < <(cat $USER_DATA/db.conf))
 }
+
 
 # SHELL list function
 shell_list() {
