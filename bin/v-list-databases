@@ -20,14 +20,6 @@ format=${2-shell}
 # shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
 
-# JSON list function
-json_list() {
-    jq -s 'reduce .[] as $line ({}; . + {($line | .DB): $line} )' <<< $(while read str; do
-        parse_object_kv_list_json_non_eval "$str"      
-    done < <(cat $USER_DATA/db.conf))
-}
-
-
 # SHELL list function
 shell_list() {
     IFS=$'\n'
@@ -75,7 +67,7 @@ is_object_valid 'user' 'USER' "$user"
 
 # Listing data
 case $format in
-    json)   json_list ;;
+    json)   json_lists_multiple_rows "db" ;;
     plain)  plain_list ;;
     csv)    csv_list ;;
     shell)  shell_list |column -t ;;

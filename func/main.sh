@@ -260,6 +260,19 @@ is_object_valid() {
     fi
 }
 
+json_lists_multiple_rows(){
+    local system=$1
+    if ! [[ "$system" =~ "web,mail,db,dns" ]]; then 
+        key="DOMAIN"
+        if [ $system = "db" ]; then 
+            key="DB"
+        fi
+        jq -s "reduce .[] as \$line ({}; . + {(\$line | .$key): \$line} )" <<< $(while read str; do
+            parse_object_kv_list_json_non_eval "$str"      
+        done < <(cat $USER_DATA/$system.conf))   
+    fi
+}
+
 parse_object_kv_list_json_non_eval() {
    local str
    local objkv obj_key obj_val
