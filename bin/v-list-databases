@@ -22,8 +22,8 @@ source $HESTIA/func/main.sh
 
 # JSON list function
 json_list() {
-    jq -s <<< $(while read str; do
-        parse_object_kv_list_json_non_eval "$str"
+    jq -s 'reduce .[] as $line ({}; . + {($line | .DB): $line} )' <<< $(while read str; do
+        parse_object_kv_list_json_non_eval "$str"      
     done < <(cat $USER_DATA/db.conf))
 }
 
