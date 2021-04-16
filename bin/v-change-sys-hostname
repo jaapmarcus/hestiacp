@@ -14,7 +14,7 @@
 
 # Argument definition
 domain=$1
-helo="${4-yes}"
+helo="${2-yes}"
 # Includes
 # shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
