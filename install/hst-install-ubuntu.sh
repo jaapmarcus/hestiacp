@@ -1731,10 +1731,12 @@ if [ ! -z "$(grep ^admin: /etc/group)" ] && [ "$force" = 'yes' ]; then
     groupdel admin > /dev/null 2>&1
 fi
 
+echo "[ * ] Enable SFTP jail..."
 # Enable sftp jail
 $HESTIA/bin/v-add-sys-sftp-jail > /dev/null 2>&1
 check_result $? "can't enable sftp jail"
 
+echo "[ * ] Create admin account..."
 # Adding Hestia admin account
 $HESTIA/bin/v-add-user admin $vpass $email default "System Administrator"
 check_result $? "can't create admin user"
@@ -1742,6 +1744,7 @@ $HESTIA/bin/v-change-user-shell admin nologin
 $HESTIA/bin/v-change-user-role admin admin
 $HESTIA/bin/v-change-user-language admin $lang
 
+echo "[ * ] Configuring system ips..."
 # Configuring system IPs
 $HESTIA/bin/v-update-sys-ip > /dev/null 2>&1
 
@@ -1863,6 +1866,8 @@ systemctl start hestia
 check_result $? "hestia start failed"
 chown admin:admin $HESTIA/data/sessions
 
+# Create backup folder
+mkdir -p /backup/
 
 #----------------------------------------------------------#
 #                  Configure File Manager                   #
