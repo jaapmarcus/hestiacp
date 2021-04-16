@@ -1849,6 +1849,39 @@ $HESTIA/bin/v-add-sys-filemanager quiet
 #                   Hestia Access Info                     #
 #----------------------------------------------------------#
 
+# Try to get an LE certificate instead
+echo "[ * ] Attemmpt to request certificate from Lets Encrypt"
+make_ssl=0
+host_ip=$(host $servername | head -n 1 | awk '{print $NF}')
+if [ "$host_ip" != "$pub_ip" ]; then
+    echo "***** PROBLEM: Hostname $servername is not pointing to your server (IP address $ip)"
+    echo "Without pointing your hostname to your IP, LetsEncrypt SSL will not be generated for your server hostname."
+    echo "Try to setup an A record in your DNS, pointing your hostname $servername to IP address $ip and then press ENTER."
+    echo "(or register ns1.$servername and ns2.$servername as DNS Nameservers and put those Nameservers on $servername domain)"
+    echo "If we detect that hostname is still not pointing to your IP, installer will not add LetsEncrypt SSL certificate to your hosting panel (unsigned SSL will be used instead)."
+    if [ ! -z "$interactive" ]; then 
+        read -p "To force to try anyway to add LetsEncrypt, press f and then ENTER." answer
+        host_ip=$(host $servername | head -n 1 | awk '{print $NF}')
+    fi
+fi
+if [ "$answer" = "f" ]; then
+    make_ssl=1
+fi
+if [ "$host_ip" = "$ip" ]; then
+    ip="$servername"
+    make_ssl=1
+fi
+
+echo "==="
+echo "Hostname $servername is pointing to $host_ip"
+
+if [ $make_ssl -eq 1 ]; then
+    echo "=== Generating HOSTNAME SSL"
+    $HESTIA/bin/v-add-letsencrypt-host
+else
+    echo "We will not generate SSL because of this"
+fi
+
 # Comparing hostname and IP
 host_ip=$(host $servername| head -n 1 |awk '{print $NF}')
 if [ "$host_ip" = "$ip" ]; then
