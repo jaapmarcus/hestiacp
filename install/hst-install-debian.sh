@@ -1177,11 +1177,11 @@ cp -rf $HESTIA_INSTALL_DIR/templates/web/skel/document_errors/* /var/www/documen
 cp -rf $HESTIA_INSTALL_DIR/firewall $HESTIA/data/
 
 # Configuring server hostname
-$HESTIA/bin/v-change-sys-hostname $servername > /dev/null 2>&1
+$HESTIA/bin/v-change-sys-hostname $servername 'no' > /dev/null 2>&1
 
 # Generating SSL certificate
 echo "[ * ] Generating default self-signed SSL certificate..."
-$HESTIA/bin/v-generate-ssl-cert $(hostname) $email 'US' 'California' \
+$HESTIA/bin/v-generate-ssl-cert $(hostname) '' 'US' 'California' \
      'San Francisco' 'Hestia Control Panel' 'IT' > /tmp/hst.pem
 
 # Parsing certificate file
@@ -1711,6 +1711,7 @@ if [ ! -z "$(grep ^admin: /etc/group)" ] && [ "$force" = 'yes' ]; then
 fi
 
 # Enable sftp jail
+echo "[ * ] Enable SFTP jail..."
 $HESTIA/bin/v-add-sys-sftp-jail > /dev/null 2>&1
 check_result $? "can't enable sftp jail"
 
@@ -1730,6 +1731,7 @@ if [ "$exim" = 'yes' ] && [ "$mysql" = 'yes' ]; then
 fi
 
 # Configuring system IPs
+echo "[ * ] Configure System IP..."
 $HESTIA/bin/v-update-sys-ip > /dev/null 2>&1
 
 # Get main IP
@@ -1747,6 +1749,11 @@ pub_ip=$(curl --ipv4 -s https://ip.hestiacp.com/)
 if [ ! -z "$pub_ip" ] && [ "$pub_ip" != "$ip" ]; then
     $HESTIA/bin/v-change-sys-ip-nat $ip $pub_ip > /dev/null 2>&1
     ip=$pub_ip
+fi
+
+if [ "$exim" = 'yes' ]; then
+# Set HELO for IP as it didn't set during v-change-sys-hostname
+$HESTIA/bin/v-change-sys-ip-helo $pub_ip $servername
 fi
 
 # Configuring libapache2-mod-remoteip
@@ -1836,6 +1843,9 @@ systemctl start hestia
 check_result $? "hestia start failed"
 chown admin:admin $HESTIA/data/sessions
 
+# Create backup folder and set correct permission
+mkdir -p /backup/
+chmod 755 /backup/
 
 #----------------------------------------------------------#
 #                  Configure File Manager                   #
@@ -1902,7 +1912,7 @@ cat $tmpfile
 rm -f $tmpfile
 
 # Add welcome message to notification panel
-$HESTIA/bin/v-add-user-notification admin 'Welcome to Hestia Control Panel!' '<br>You are now ready to begin <a href="/add/user/">adding user accounts</a> and <a href="/add/web/">domains</a>. For help and assistance, view the <a href="https://docs.hestiacp.com/" target="_new">documentation</a> or visit our <a href="https://forum.hestiacp.com/" target="_new">user forum</a>.<br><br>Please report any bugs or issues via <a href="https://github.com/hestiacp/hestiacp/issues" target="_new"><i class="fab fa-github"></i> GitHub</a> or e-mail <a href="mailto:info@hestiacp.com?Subject="['$new_version'] Bug Report: ">info@hestiacp.com</a>.<br><br><b>Have a wonderful day!</b><br><br><i class="fas fa-heart status-icon red"></i> The Hestia Control Panel development team'
+$HESTIA/bin/v-add-user-notification admin 'Welcome to Hestia Control Panel!' '<br>You are now ready to begin <a href="/add/user/">adding user accounts</a> and <a href="/add/web/">domains</a>. For help and assistance, view the <a href="https://docs.hestiacp.com/" target="_new">documentation</a> or visit our <a href="https://forum.hestiacp.com/" target="_new">user forum</a>.<br><br>Please report any bugs or issues via <a href="https://github.com/hestiacp/hestiacp/issues" target="_new"><i class="fab fa-github"></i> GitHub</a>.<br><br><b>Have a wonderful day!</b><br><br><i class="fas fa-heart status-icon red"></i> The Hestia Control Panel development team'
 
 echo "[ ! ] IMPORTANT: You must logout or restart the server before continuing."
 echo ""
