@@ -6,6 +6,6 @@ for template in $(v-list-web-templates plain)
 do
     v-change-web-domain-tpl 'hestia101' 'test.hestiacp.com' "$template"
     echo "$template:"
-    nginx -t > ./template.txt 
+    nginx -t 
 done
 v-delete-user 'hestia101'
