@@ -9,6 +9,7 @@
 # Optimize loading firewall rules
 if [ "$FIREWALL_SYSTEM" = "iptables" ]; then
     echo "[ * ] Fix the issue of loading firewall rules..."
+    rm -f /etc/iptables.rules
     rm -f /usr/lib/networkd-dispatcher/routable.d/50-ifup-hooks /etc/network/if-pre-up.d/iptables
     $BIN/v-update-firewall
 fi
