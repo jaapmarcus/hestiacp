@@ -14,4 +14,6 @@ if [ "$FIREWALL_SYSTEM" = "iptables" ]; then
     rm -f /etc/iptables.rules
     rm -f /usr/lib/networkd-dispatcher/routable.d/50-ifup-hooks /etc/network/if-pre-up.d/iptables
     $BIN/v-update-firewall
+    $BIN/v-stop-firewall
+    $BIN/v-update-firewall
 fi
