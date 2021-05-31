@@ -10,5 +10,6 @@
 if [ "$FIREWALL_SYSTEM" = "iptables" ]; then
     echo "[ * ] Fix the issue of loading firewall rules..."
     rm -f /usr/lib/networkd-dispatcher/routable.d/50-ifup-hooks /etc/network/if-pre-up.d/iptables
+    iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
     $BIN/v-update-firewall
 fi
