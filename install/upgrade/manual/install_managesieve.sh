@@ -8,37 +8,38 @@ source /usr/local/hestia/conf/hesita.conf
 
 check="0"
 if [ "$IMAP_SYSTEM" = "dovecot" ]; then 
-	echo "[ * ] Check Dovecot is installed"
+  echo "[ * ] Check Dovecot is installed"
 else
-	echo "[ ! ] No install of dovecot found"
-	check="1"
+  echo "[ ! ] No install of dovecot found"
+  check="1"
 fi
 
 if [ -f "/etc/dovecot/conf.d/90-sieve.conf" ]; then 
-	echo "[ ! ] 90-sieve.conf allready exists unable to install sieve if allready exists"
-	check="1"
+  echo "[ ! ] 90-sieve.conf allready exists unable to install sieve if allready exists"
+  check="1"
 fi
 
 if [ -f "/etc/dovecot/conf.d/20-lmtp.conf" ]; then 
-	echo "[ ! ] 20-lmtp.conf allready exists unable to install sieve if allready exists"
-	check="1"
+  echo "[ ! ] 20-lmtp.conf allready exists unable to install sieve if allready exists"
+  check="1"
 fi
 
 if [ -f "/etc/dovecot/conf.d/20-managesieve.conf" ]; then 
-	echo "[ ! ] 20-managesieve.conf	 allready exists unable to install sieve if allready exists"
-	check="1"
+  echo "[ ! ] 20-managesieve.conf	 allready exists unable to install sieve if allready exists"
+  check="1"
 fi
 
 if [ "$check" = 1 ]; fi 
-	echo "Unable to install manage sieve"
+  echo "Unable to install manage sieve"
 fi
 
-# Install extra package
+# Install extra packages for sieve support
 apt install  dovecot-lmtpd dovecot-managesieved dovecot-sieve 
 
-#todo create sed script 
-replace "#lda_mailbox_autocreate = no" lda_mailbox_autocreate = yes  /etc/dovecot/conf.d/15-lda.conf
-replace "#lda_mailbox_autosubscribe = no" lda_mailbox_autosubscribe = yes  /etc/dovecot/conf.d/15-lda.conf
+sed -i 's/#lda_mailbox_autocreate = no/lda_mailbox_autocreate = yes/g' /etc/dovecot/conf.d/15-lda.conf
+sed -i 's/#lda_mailbox_autosubscribe = no"/lda_mailbox_autosubscribe = yes/g'  /etc/dovecot/conf.d/15-lda.conf
+
+cp -f $HESTIA/install/deb/dovecot-sieve/* /etc/dovecot/conf.d/
 
 
 add: transport = dovecot_lmtp
@@ -54,17 +55,14 @@ sed "dovecot_lmtp:
   
   to  /etc/exim4/exim4.conf.template
   
-  
-  
-  
   mkdir /etc/dovecot/sieve
   touch /etc/dovecot/sieve/before.sieve
   touch /etc/dovecot/sieve/after.sieve
   
   echo 'require ["fileinto", "regex", "date", "relational", "vacation", "imap4flags", "envelope", "subaddress", "copy", "reject"];' > /etc/dovecot/sieve
-  echo '' > /etc/dovecot/sieve
-  echo '# rule:[Spam Filter]' > /etc/dovecot/sieve
-  echo 'if anyof (header :contains "X-Spam-Flag" "YES", header :contains "X-Spam" "Yes") {' > /etc/dovecot/sieve                                                                                    
-  echo '  fileinto "Junk";' > /etc/dovecot/sieve
-  echo '  stop;' /etc/dovecot/sieve
-  echo '} "' > /etc/dovecot/sieve
+  echo '' >> /etc/dovecot/sieve
+  echo '# rule:[Spam Filter]' >> /etc/dovecot/sieve
+  echo 'if anyof (header :contains "X-Spam-Flag" "YES", header :contains "X-Spam" "Yes") {' >> /etc/dovecot/sieve                                                                                    
+  echo '  fileinto "Junk";' >> /etc/dovecot/sieve
+  echo '  stop;' >> /etc/dovecot/sieve
+  echo '} "' >> /etc/dovecot/sieve
