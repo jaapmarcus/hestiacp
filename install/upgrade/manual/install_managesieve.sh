@@ -41,7 +41,7 @@ apt install  dovecot-lmtpd dovecot-managesieved dovecot-sieve
 sed -i 's/#lda_mailbox_autocreate = no/lda_mailbox_autocreate = yes/g' /etc/dovecot/conf.d/15-lda.conf
 sed -i 's/#lda_mailbox_autosubscribe = no"/lda_mailbox_autosubscribe = yes/g'  /etc/dovecot/conf.d/15-lda.conf
 
-cp -f $HESTIA/install/deb/dovecot-sieve/* /etc/dovecot/conf.d/
+cp -f $HESTIA/install/deb/dovecot-sieve/conf.d/* /etc/dovecot/conf.d/
 sed -i  "s/transport = local_delivery/transport = dovecot_lmtp/g" /etc/exim4/exim4.conf.template
 
 ## dovecot_lmtp
