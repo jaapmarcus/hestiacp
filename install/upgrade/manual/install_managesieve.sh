@@ -4,7 +4,7 @@
 # For external use open port 4190 to the public
 
 source /etc/profile
-source /usr/local/hestia/conf/hesita.conf
+source /usr/local/hestia/conf/hestia.conf 
 
 check="0"
 if [ "$IMAP_SYSTEM" = "dovecot" ]; then 
