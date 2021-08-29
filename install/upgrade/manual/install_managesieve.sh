@@ -52,7 +52,7 @@ insert='dovecot_lmtp:\n\  driver = lmtp\n\  socket = /var/run/dovecot/lmtp\n\  b
 line=$(expr $(sed -n '/begin transports/=' /etc/exim4/exim4.conf.template) + 2)
 sed -i "${line}i $insert" /etc/exim4/exim4.conf.template
   
- mkdir /etc/dovecot/sieve
+ mkdir -p /etc/dovecot/sieve
  touch /etc/dovecot/sieve/before.sieve
  touch /etc/dovecot/sieve/after.sieve
   
@@ -63,3 +63,13 @@ echo 'if anyof (header :contains "X-Spam-Flag" "YES", header :contains "X-Spam" 
 echo '  fileinto "Junk";' >> /etc/dovecot/sieve/default.sieve
 echo '  stop;' >> /etc/dovecot/sieve/default.sieve
 echo '} "' >> /etc/dovecot/sieve/default.sieve
+
+mkdir -p /etc/roundcube/plugins/managesieve/
+
+echo "<?php"
+echo "// Dovecot managedsieve TCP port" >  /etc/roundcube/plugins/managesieve/config.php
+echo "\$rcmail_config['managesieve_port'] = 4190;"                                             
+echo "// Default contents of filters script (eg. default spam filter)" >  /etc/roundcube/plugins/managesieve/config.php
+echo "\$rcmail_config['managesieve_default'] = '/etc/dovecot/sieve/default.sieve';" /etc/roundcube/plugins/managesieve/config.php 
+
+sed -i "s/'password'/'password','managesieve'/g" /etc/roundcube/config.php
