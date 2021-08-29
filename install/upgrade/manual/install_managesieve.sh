@@ -66,7 +66,7 @@ echo '} "' >> /etc/dovecot/sieve/default.sieve
 
 mkdir -p /etc/roundcube/plugins/managesieve/
 
-echo "<?php"
+echo "<?php"  >>  /etc/roundcube/plugins/managesieve/config.inc.php
 echo "// Dovecot managedsieve TCP port" >>  /etc/roundcube/plugins/managesieve/config.inc.php
 echo "\$rcmail_config['managesieve_port'] = 4190;"  >>  /etc/roundcube/plugins/managesieve/config.inc.php
 echo "// Default contents of filters script (eg. default spam filter)" >>  /etc/roundcube/plugins/managesieve/config.inc.php
