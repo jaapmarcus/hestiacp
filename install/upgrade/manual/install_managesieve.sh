@@ -36,10 +36,9 @@ if [[ "$check" = 1 ]]; then
 fi
 
 # Install extra packages for sieve support
-apt install  dovecot-lmtpd dovecot-managesieved dovecot-sieve 
-
-sed -i 's/#lda_mailbox_autocreate = no/lda_mailbox_autocreate = yes/g' /etc/dovecot/conf.d/15-lda.conf
-sed -i 's/#lda_mailbox_autosubscribe = no"/lda_mailbox_autosubscribe = yes/g'  /etc/dovecot/conf.d/15-lda.conf
+apt install  dovecot-lmtpd dovecot-managesieved dovecot-sieve
+# Remove lda.conf
+rm -f /etc/dovecot/conf.d/15-lda.conf
 
 cp -f $HESTIA/install/deb/dovecot-sieve/conf.d/* /etc/dovecot/conf.d/
 sed -i  "s/transport = local_delivery/transport = dovecot_lmtp/g" /etc/exim4/exim4.conf.template
