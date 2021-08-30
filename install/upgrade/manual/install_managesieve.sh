@@ -65,11 +65,10 @@ echo '} "' >> /etc/dovecot/sieve/default.sieve
 
 mkdir -p /etc/roundcube/plugins/managesieve/
 
-echo "<?php"  >>  /etc/roundcube/plugins/managesieve/config.inc.php
-echo "// Dovecot managedsieve TCP port" >>  /etc/roundcube/plugins/managesieve/config.inc.php
-echo "\$rcmail_config['managesieve_port'] = 4190;"  >>  /etc/roundcube/plugins/managesieve/config.inc.php
-echo "// Default contents of filters script (eg. default spam filter)" >>  /etc/roundcube/plugins/managesieve/config.inc.php
-echo "\$rcmail_config['managesieve_default'] = '/etc/dovecot/sieve/default.sieve';" >> /etc/roundcube/plugins/managesieve/config.inc.php
+cp /var/lib/roundcube/plugins/managesieve/config.inc.php.dist /etc/roundcube/plugins/managesieve/config.inc.php
+
+sed -i "s|\$config['managesieve_port'] = null;|\$config['managesieve_port'] = 4190;|g" /etc/roundcube/plugins/managesieve/config.inc.php
+sed -i "s|\$config['managesieve_default'] = '/etc/dovecot/sieve/global';|\$config['managesieve_default'] = '/etc/dovecot/sieve/default.sieve';|g" /etc/roundcube/plugins/managesieve/config.inc.php
 
 ln -s /etc/roundcube/plugins/managesieve/config.inc.php /var/lib/roundcube/plugins/managesieve/config.inc.php
 sed -i "s/'password'/'password','managesieve'/g" /etc/roundcube/config.inc.php
