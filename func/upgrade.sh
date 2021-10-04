@@ -9,6 +9,15 @@ source $HESTIA/func/syshealth.sh
 #######                Functions & Initialization             #######
 #####################################################################
 
+add_upgrade_message (){ 
+    if [ -f "$HESTIA_BACKUP/message.log" ]; then 
+        echo -e $1 >> $HESTIA_BACKUP/message.log
+        echo -e "\n\n" >> $HESTIA_BACKUP/message.log
+    else
+        echo -e $1 > $HESTIA_BACKUP/message.log
+    fi    
+}
+
 is_debug_build() {
     if [[ "$new_version" =~ "alpha" ]] || [[ "$new_version" =~ "beta" ]]; then
         DEBUG_MODE="true"
@@ -191,12 +200,25 @@ upgrade_send_notification_to_email () {
         echo "$HOSTNAME has been upgraded from Hestia Control Panel v$VERSION to v${new_version}." >> $message_tmp_file
         echo "Installation log: $LOG" >> $message_tmp_file
         echo "" >> $message_tmp_file
+
+        # Check for additional upgrade notes from update scripts.
+        if [[ -f "$HESTIA_BACKUP/message.log" ]]; then
+            echo "==================================================="  >> $message_tmp_file
+            echo "The upgrade script has generated additional notifications, which must be heeded urgently:" >> $message_tmp_file
+            echo "" >> $message_tmp_file
+            cat $HESTIA_BACKUP/message.log >> $message_tmp_file
+            echo "" >> $message_tmp_file
+            echo "==================================================="  >> $message_tmp_file
+            echo "" >> $message_tmp_file
+        fi
+
         echo "What's new: https://github.com/hestiacp/hestiacp/blob/$RELEASE_BRANCH/CHANGELOG.md" >> $message_tmp_file
         echo  >> $message_tmp_file
         echo "What to do if you run into issues:" >> $message_tmp_file
         echo "- Check our forums for possible solutions: https://forum.hestiacp.com" >> $message_tmp_file
         echo "- File an issue report on GitHub: https://github.com/hestiacp/hestiacp/issues" >> $message_tmp_file
         echo "" >> $message_tmp_file
+        echo "Help support the Hestia Control Panel project by donating via PayPal: https://www.hestiacp.com/donate" >> $message_tmp_file
         echo "==================================================="  >> $message_tmp_file
         echo "Have a wonderful day," >> $message_tmp_file
         echo "The Hestia Control Panel development team" >> $message_tmp_file
@@ -294,6 +316,15 @@ upgrade_init_backup() {
     if [ -e "/etc/ssh/sshd_config" ]; then
         mkdir -p $HESTIA_BACKUP/conf/ssh/
     fi
+    if [ -d "/etc/roundcube/" ]; then
+        mkdir -p $HESTIA_BACKUP/conf/roundcube/
+    fi
+    if [ -d "/etc/rainloop/" ]; then
+        mkdir -p $HESTIA_BACKUP/conf/rainloop/
+    fi
+    if [ -d "/etc/phpmyadmin/" ]; then
+        mkdir -p $HESTIA_BACKUP/conf/phpmyadmin/
+    fi
 }
 
 upgrade_init_logging() {
@@ -342,36 +373,32 @@ upgrade_start_backup() {
         if [ "$DEBUG_MODE" = "true" ]; then
             echo "      ---- $WEB_SYSTEM"
         fi
-        cp -f /etc/$WEB_SYSTEM/*.conf $HESTIA_BACKUP/conf/$WEB_SYSTEM/
-        cp -f /etc/$WEB_SYSTEM/conf.d/*.conf $HESTIA_BACKUP/conf/$WEB_SYSTEM/
+        cp -fr /etc/$WEB_SYSTEM/* $HESTIA_BACKUP/conf/$WEB_SYSTEM/
     fi
     if [ ! -z "$PROXY_SYSTEM" ]; then
         if [ "$DEBUG_MODE" = "true" ]; then
             echo "      ---- $PROXY_SYSTEM"
         fi
-        cp -f /etc/$PROXY_SYSTEM/*.conf $HESTIA_BACKUP/conf/$PROXY_SYSTEM/
-        cp -f /etc/$PROXY_SYSTEM/conf.d/*.conf $HESTIA_BACKUP/conf/$PROXY_SYSTEM/
-        cp -f /etc/$PROXY_SYSTEM/conf.d/*.inc $HESTIA_BACKUP/conf/$PROXY_SYSTEM/
+        cp -fr /etc/$PROXY_SYSTEM/* $HESTIA_BACKUP/conf/$PROXY_SYSTEM/
     fi
     if [ ! -z "$IMAP_SYSTEM" ]; then
         if [ "$DEBUG_MODE" = "true" ]; then
             echo "      ---- $IMAP_SYSTEM"
         fi
-        cp -f /etc/$IMAP_SYSTEM/*.conf $HESTIA_BACKUP/conf/$IMAP_SYSTEM/
-        cp -f /etc/$IMAP_SYSTEM/conf.d/*.conf $HESTIA_BACKUP/conf/$IMAP_SYSTEM/
+        cp -fr /etc/$IMAP_SYSTEM/* $HESTIA_BACKUP/conf/$IMAP_SYSTEM/
     fi
     if [ ! -z "$MAIL_SYSTEM" ]; then
         if [ "$DEBUG_MODE" = "true" ]; then
             echo "      ---- $MAIL_SYSTEM"
         fi
-        cp -f /etc/$MAIL_SYSTEM/*.conf $HESTIA_BACKUP/conf/$MAIL_SYSTEM/
+        cp -fr /etc/$MAIL_SYSTEM/* $HESTIA_BACKUP/conf/$MAIL_SYSTEM/
     fi
     if [ ! -z "$DNS_SYSTEM" ]; then
         if [ "$DNS_SYSTEM" = "bind9" ]; then
             if [ "$DEBUG_MODE" = "true" ]; then
                 echo "      ---- $DNS_SYSTEM"
             fi
-            cp -f /etc/bind/*.conf $HESTIA_BACKUP/conf/$DNS_SYSTEM/
+            cp -fr /etc/bind/* $HESTIA_BACKUP/conf/$DNS_SYSTEM/
         fi
     fi
     if [ ! -z "$DB_SYSTEM" ]; then
@@ -379,16 +406,14 @@ upgrade_start_backup() {
             if [ "$DEBUG_MODE" = "true" ]; then
                 echo "      ---- mysql"
             fi
-            cp -f /etc/mysql/*.cnf $HESTIA_BACKUP/conf/mysql/
-            cp -f /etc/mysql/conf.d/*.cnf $HESTIA_BACKUP/conf/mysql/ > /dev/null 2>&1
-            cp -f /etc/mysql/mariadb.conf.d/*.cnf $HESTIA_BACKUP/conf/mysql/ > /dev/null 2>&1       
+            cp -fr /etc/mysql/* $HESTIA_BACKUP/conf/mysql/       
         fi
         if [[ "$DB_SYSTEM" =~ "pgsql" ]]; then
             if [ "$DEBUG_MODE" = "true" ]; then
                 echo "      ---- pgsql"
             fi
-            cp -f /etc/mysql/*.cnf $HESTIA_BACKUP/conf/pgsql/
-            cp -f /etc/mysql/conf.d/*.cnf $HESTIA_BACKUP/conf/pgsql/         
+            # config for postgresql is stored in /etc/postgresql/version/main/
+            cp -fr /etc/postgresql/* $HESTIA_BACKUP/conf/pgsql/         
         fi
     fi
     if [ ! -z "$FTP_SYSTEM" ]; then
@@ -414,8 +439,27 @@ upgrade_start_backup() {
         if [ "$DEBUG_MODE" = "true" ]; then
             echo "      ---- sshd"
         fi
-        cp -f /etc/ssh/sshd_config $HESTIA_BACKUP/conf/ssh/sshd_config
+        cp -fr /etc/ssh/* $HESTIA_BACKUP/conf/ssh/
     fi
+    if [ -d "/etc/roundcube" ]; then
+        if [ "$DEBUG_MODE" = "true" ]; then
+            echo "      ---- Roundcube"
+        fi
+        cp -fr /etc/roundcube/* $HESTIA_BACKUP/conf/roundcube
+    fi
+    if [ -d "/etc/rainloop" ]; then
+        if [ "$DEBUG_MODE" = "true" ]; then
+            echo "      ---- Rainloop"
+        fi
+        cp -fr /etc/roundcube/* $HESTIA_BACKUP/conf/roundcube
+    fi
+    if [ -d "/etc/phpmyadmin" ]; then
+        if [ "$DEBUG_MODE" = "true" ]; then
+            echo "      ---- PHPmyAdmin"
+        fi
+        cp -fr /etc/phpmyadmin/* $HESTIA_BACKUP/conf/phpmyadmin
+    fi
+
 }
 
 upgrade_refresh_config() {
@@ -560,7 +604,7 @@ upgrade_roundcube(){
     if [ "UPGRADE_UPDATE_ROUNDCUBE" = "true" ]; then
         if [ ! -z "$(echo "$WEBMAIL_SYSTEM" | grep -w 'roundcube')" ]; then
             rc_version=$(cat /var/lib/roundcube/index.php | grep -o -E '[0-9].[0-9].[0-9]+' | head -1);
-            if [ "$rc_version" == "$rc_v" ]; then
+            if [ "$rc_version" != "$rc_v" ]; then
                 echo "[ * ] Upgrading Roundcube to version v$rc_v..."
                 $HESTIA/bin/v-add-sys-roundcube
             fi
@@ -572,11 +616,23 @@ upgrade_rainloop(){
     if [ "UPGRADE_UPDATE_RAINLOOP" = "true" ]; then
         if [ ! -z "$(echo "$WEBMAIL_SYSTEM" | grep -w 'rainloop')" ]; then
             rc_version=$(cat /var/lib/rainloop/data/VERSION);
-            if [ "$rc_version" == "$rc_v" ]; then
+            if [ "$rc_version" != "$rl_v" ]; then
                 echo "[ * ] Upgrading Rainloop to version v$rl_v..."
                 $HESTIA/bin/v-add-sys-rainloop
             fi
         fi
+    fi
+}
+
+upgrade_phpmailer(){
+    if [ ! -d "$HESTIA/web/inc/vendor/" ]; then
+        echo "[ ! ] Install PHPmailer";
+        $HESTIA/bin/v-add-sys-phpmailer
+    fi
+    phpm_version=$(cat $HESTIA/web/inc/vendor/phpmailer/phpmailer/VERSION);
+    if [ "$phpm_version" != "$pm_v" ]; then
+    echo "[ * ] Upgrading Rainloop to version v$pm_v..."
+        $HESTIA/bin/v-add-sys-phpmailer
     fi
 }
 

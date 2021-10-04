@@ -1,15 +1,89 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Development] 
+## [DEVELOPMENT] - Service release 
+
+## Features
+
+### Bugfixes
+
+- Disable /reset/ endpoint when POLICY_SYSTEM_PASSWORD_RESET = no
+
+## [1.4.17] - Service release 
+
+### Bugfixes
+
+- Fix bug with nginx and phmyadmin not loading
+
+## [1.4.16] - Service release 
+
+### Bugfixes
+
+- Fix bug with .json not loading on Apache2 due to rule in /etc/apache2/conf.d/phpmyadmin.conf
+
+### Bugfixes
+
+## [1.4.15] - Service release 
+
+## Features
+
+- Add templates Chevereto #2153 @ManualRechkle
+
+### Bugfixes
+
+- Fix bug in v-add-sys-ip with netplan active
+- Limit access to files/folders that are not required on default /phpmyadmin (*.json, templates, locale, vendor) #2143
+- Update translations
+- Fix issue with Exim 4.94 and Autoreply #2151
+- Fix multiple UI bugs #2415
+- Fix link broken link to Documentation #2142 
+- Improve detection for MariaDB #2141 thanks @gejobj
+
+## [1.4.14] - Service release 
+
+### Bugfixes
+
+- Fixed an issue with edit package
+- Fixed an issue with v-update-letsencrypt and v-restart-service
+- Fixed an issue with v-add-sys-ip and Ubuntu with no netplan enabled
+- Fixed broken UPGRADE_MESSAGE variable not showing up in email
+- Include / expand the config backup system during update
+
+## [1.4.13] - Service release 
+
+### Features
+- Introduce UPGRADE_MESSAGE variable to support custom messages in e-mail upgrade notification.
+
+### Bugfixes
+- Improve the hostname check to prevent invalid hostnames or the use of an ip address (RFC1178).
+- Prevent CSRF from other domains / websites
+- Fix #2096 Hostname SSL got overwritten by mail.hostname.com certificate
+- Add small wait for /usr/bin/iptables-restore [Forum](https://forum.hestiacp.com/t/clean-install-arm64-does-not-start-after-reboot-v-start-service-iptables/4395/7) + Fixed v-add-firewall / v-delete-firewall function (#2112) @myrevery
+- Fix bug in v-change-sys-api. When using  v-change-sys-api remove and then  v-change-sys-api enable + custom release branch the resetting of api failed + no "error" output was producted
+- Improve error reporting PMA Single sign on function function
+- Fixed an issue in v-change-web-domain-name where webserserver where not able to start because old config files where not propperly deleted #2104
+- Fixed potential XSS vulnerability in /list/keys/  @wtwwer [Disclosure](https://huntr.dev/bounties/0fefa2f6-7024-44c8-87c7-4d01fb93403e/)
+- Removed /edit/file as it has been replaced by Filegator and part of the old Vesta Filemanager 
+- Fixed potential External control / path vulnerability in /add/package @wtwwer [Disclosure](https://huntr.dev/bounties/e0a2c6ff-b4fe-45a2-9d79-1f4dc1b381ab/)
+- Add extra checks to prevent type juggling @vikychoi [Disclosure](https://huntr.dev/bounties/c24fb15c-3c84-45c8-af04-a660f8da388f/)
+- Improved and updated some missing translation strings @myrevery
+- Sync translations with Github
+
+## [1.4.12] - Service release 
+
+### Bugfixes
 
 - Allow custom mail domains with own certificates #2061 @myrevery 
+- Fixed Replace tabulation with \u0009 in v-list-dns-records #2089 @codibit
+- Fix #2087 Exim 4.94 Did not send any email to remote servers. 
+- Fixed #2082 v-delete-web-php creates always new config file
+- Add /home/user/.composer in open_basedir #2088 @anvme
 
 ## [1.4.11] - Service release 
 
 ### Features
 
-- Added support for Debian 11  (Bullseye) #1611
+- Added support for Debian 11  (Bullseye) #1661
 - Added support for openssl in hestia-php 
 - Use hestia-php for installing dependencies to solve issue user configurations (hestia-php 7.4.22 required)
 - Replace old firewall system with systemd service / startup script #2064 @myrevery
@@ -36,6 +110,8 @@ All notable changes to this project will be documented in this file.
 - Fixed UI issues after upgrade jQuery + jQuery UI to last version (#2021 and #2032) + [forum](https://forum.hestiacp.com/t/confusion-about-send-welcome-email-checkbox/4259/11)
 - Fixed security issues in caching templates of Nginx when used as Reverse Proxy
 - Fixed an issue with deleting multiple mail accounts (#2047)
+- Fixed an issue with phpmailer + non latin characters (#2050) thanks @Faymir
+- Remove caching template for CraftCMS (#2039) @anvme 
 - Fixed an issue with phpmailer + non latin characters (#2050) thanks @Faymir 
 - Fix Unable to load dynamic library 'pdo_mysql.so' after php reinstalling (#2069)
 

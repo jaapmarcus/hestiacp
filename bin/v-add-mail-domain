@@ -115,6 +115,7 @@ if [[ "$MAIL_SYSTEM" =~ exim ]]; then
     touch $HOMEDIR/$user/conf/mail/$domain/aliases
     touch $HOMEDIR/$user/conf/mail/$domain/passwd
     touch $HOMEDIR/$user/conf/mail/$domain/fwd_only
+    touch $HOMEDIR/$user/conf/mail/$domain/accounts
     ln -s $HOMEDIR/$user/conf/mail/$domain \
         /etc/$MAIL_SYSTEM/domains/$domain_idn
 
@@ -122,15 +123,19 @@ if [[ "$MAIL_SYSTEM" =~ exim ]]; then
     if [ ! -z "$local_ip" ]; then
         echo "$local_ip" > $HOMEDIR/$user/conf/mail/$domain/ip
     fi
-
-    # Adding antispam protection
-    if [ "$antispam" = 'yes' ]; then
-        touch $HOMEDIR/$user/conf/mail/$domain/antispam
+    
+    if [ -n "ANTIVIRUS_SYSTEM" ]; then 
+        # Adding antispam protection
+        if [ "$antispam" = 'yes' ]; then
+            touch $HOMEDIR/$user/conf/mail/$domain/antispam
+        fi
     fi
-
-    # Adding antivirus protection
-    if [ "$antivirus" = 'yes' ]; then
-        touch $HOMEDIR/$user/conf/mail/$domain/antivirus
+    
+    if [ -n "ANTISPAM_SYSTEM" ]; then
+        # Adding antivirus protection
+        if [ "$antivirus" = 'yes' ]; then
+            touch $HOMEDIR/$user/conf/mail/$domain/antivirus
+        fi
     fi
 
     # Adding dkim support
@@ -150,6 +155,7 @@ if [[ "$MAIL_SYSTEM" =~ exim ]]; then
     if [ "$IMAP_SYSTEM" = 'dovecot' ]; then
         chown -R dovecot:mail $HOMEDIR/$user/conf/mail/$domain/passwd
     fi
+    chown $MAIL_USER:mail $HOMEDIR/$user/conf/mail/$domain/accounts
     chown $user:mail $HOMEDIR/$user/mail/$domain_idn
 fi
 
