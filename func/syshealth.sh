@@ -25,7 +25,7 @@ function write_kv_config_file() {
 
     touch $HESTIA/conf/defaults/$system.conf
 
-    for key in ${known_keys[@]}; do
+    for key in $known_keys; do
         echo $key >> $HESTIA/conf/defaults/$system.conf
     done
 }
@@ -181,7 +181,7 @@ function syshealth_repair_system_config() {
     fi
 
     # Webmail alias
-    if [ ! -z "$IMAP_SYSTEM" ]; then
+    if [ -n "$IMAP_SYSTEM" ]; then
         if [ -z "$WEBMAIL_ALIAS" ]; then
             echo "[ ! ] Adding missing variable to hestia.conf: WEBMAIL_ALIAS ('webmail')"
             $BIN/v-change-sys-config-value 'WEBMAIL_ALIAS' 'webmail'
@@ -189,7 +189,7 @@ function syshealth_repair_system_config() {
     fi
 
     # phpMyAdmin/phpPgAdmin alias
-    if [ ! -z "$DB_SYSTEM" ]; then
+    if [ -n "$DB_SYSTEM" ]; then
         if [ "$DB_SYSTEM" = "mysql" ]; then
             if [ -z "$DB_PMA_ALIAS" ]; then 
                 echo "[ ! ] Adding missing variable to hestia.conf: DB_PMA_ALIAS ('phpmyadmin)"
@@ -290,8 +290,8 @@ function syshealth_repair_system_config() {
 
     # Enforce subdomain ownership
     if [ -z "$ENFORCE_SUBDOMAIN_OWNERSHIP" ]; then
-        echo "[ ! ] Adding missing variable to hestia.conf: ENFORCE_SUBDOMAIN_OWNERSHIP ('yes')"
-        $BIN/v-change-sys-config-value "ENFORCE_SUBDOMAIN_OWNERSHIP" "yes"
+        echo "[ ! ] Adding missing variable to hestia.conf: ENFORCE_SUBDOMAIN_OWNERSHIP ('no')"
+        $BIN/v-change-sys-config-value "ENFORCE_SUBDOMAIN_OWNERSHIP" "no"
     fi
 
     # API access allowed IP's
@@ -380,7 +380,45 @@ function syshealth_repair_system_config() {
         echo "[ ! ] Adding missing variable to hestia.conf: PHPMYADMIN_KEY ('')"
         $BIN/v-change-sys-config-value "PHPMYADMIN_KEY" ""
     fi
+    # Use SMTP server for hestia internal mail 
+    if [ -z "$USE_SERVER_SMTP" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: USE_SERVER_SMTP ('')"
+        $BIN/v-change-sys-config-value "USE_SERVER_SMTP" "false"
+    fi
+
+    if [ -z "$SERVER_SMTP_PORT" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: SERVER_SMTP_PORT ('')"
+        $BIN/v-change-sys-config-value "SERVER_SMTP_PORT" ""
+    fi
+
+    if [ -z "$SERVER_SMTP_HOST" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: SERVER_SMTP_HOST ('')"
+        $BIN/v-change-sys-config-value "SERVER_SMTP_HOST" ""
+    fi
+
+    if [ -z "$SERVER_SMTP_SECURITY" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: SERVER_SMTP_SECURITY ('')"
+        $BIN/v-change-sys-config-value "SERVER_SMTP_SECURITY" ""
+    fi
+
+    if [ -z "$SERVER_SMTP_USER" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: SERVER_SMTP_USER ('')"
+        $BIN/v-change-sys-config-value "SERVER_SMTP_USER" ""
+    fi
     
+    if [ -z "$SERVER_SMTP_PASSWD" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: SERVER_SMTP_PASSWD ('')"
+        $BIN/v-change-sys-config-value "SERVER_SMTP_PASSWD" ""
+    fi
+        
+    if [ -z "$SERVER_SMTP_ADDR" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: SERVER_SMTP_ADDR ('')"
+        $BIN/v-change-sys-config-value "SERVER_SMTP_ADDR" ""
+    fi    
+    if [ -z "$POLICY_CSRF_STRICTNESS" ]; then
+        echo "[ ! ] Adding missing variable to hestia.conf: POLICY_CSRF_STRICTNESS ('')"
+        $BIN/v-change-sys-config-value "POLICY_CSRF_STRICTNESS" "1"
+    fi  
 }
 
 # Repair System Cron Jobs

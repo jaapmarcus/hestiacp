@@ -9,24 +9,19 @@
 			<table>
 				<tr>
 					<td>
-						<a class="vst<?php if ((empty($_GET['period'])) || ($_GET['period'] == 'daily')) echo " selected" ?>" href="?period=daily"><?=_('Daily');?></a>
-						<a class="vst<?php if ((!empty($_GET['period'])) && ($_GET['period'] == 'weekly')) echo " selected" ?>" href="?period=weekly"><?=_('Weekly');?></a>
-						<a class="vst<?php if ((!empty($_GET['period'])) && ($_GET['period'] == 'monthly')) echo " selected" ?>" href="?period=monthly"><?=_('Monthly');?></a>
-						<a class="vst<?php if ((!empty($_GET['period'])) && ($_GET['period'] == 'yearly')) echo " selected" ?>" href="?period=yearly"><?=_('Yearly');?></a>
+						<a class="vst<?php if ((empty($period)) || ($period == 'daily')) echo " selected" ?>" href="?period=daily"><?=_('Daily');?></a>
+						<a class="vst<?php if ((!empty($period)) && ($period == 'weekly')) echo " selected" ?>" href="?period=weekly"><?=_('Weekly');?></a>
+						<a class="vst<?php if ((!empty($period)) && ($period == 'monthly')) echo " selected" ?>" href="?period=monthly"><?=_('Monthly');?></a>
+						<a class="vst<?php if ((!empty($period)) && ($period == 'yearly')) echo " selected" ?>" href="?period=yearly"><?=_('Yearly');?></a>
 					</td>
 
 					<td>
 						<div class="timer-container" style="float:right;">
-							<span class="timer-button pause"></span>
-							<span class="timer-button play hidden"></span>
-
-							<div class="refresh-timer">
-								<div class="movement left">
-									<div class="loader-half left"></div>
-								</div>
-								<div class="movement right">
-									<div class="loader-half right"></div>
-								</div>
+							<span class="timer-button pause-stop" onclick="stopTimer()"><i class="fas fa-pause"></i></span>
+							<div class="timer-button spinner">
+								  <div class="spinner-inner"></div>
+								  <div class="spinner-mask"></div>
+								  <div class="spinner-mask-two"></div>
 							</div>
 						</div>
 					</td>
@@ -42,11 +37,6 @@
 <div class="l-center units animated fadeIn">
 	<!-- Begin graph list item loop -->
 	<?php
-		if (empty($_GET['period'])) {
-			$period='daily';
-		} else {
-			$period=$_GET['period'];
-		}
 		foreach ($data as $key => $value) {
 		?>
 		<div class="l-unit l-unit__stats">

@@ -10,12 +10,11 @@
 						<td style="padding: 40px 60px 0 0;" class="animated fadeIn">
 							<form method="post" action="/login/" id="form_login">
 								<input type="hidden" name="token" value="<?=$_SESSION['token']; ?>">
-								<input type="hidden" name="user" value="<?=$_POST['user']; ?>">
-								<input type="hidden" name="murmur" value="<?=$_SESSION['token']; ?>" id="murmur">
+                                <input type="hidden" name="murmur" value="" id="murmur">
 								<table class="login-box">
 									<tr>
 										<td style="padding: 12px 0 0 2px;" class="login-welcome">
-											<?=_('Welcome');?> <?=$_POST['user']; ?>!
+											<?=_('Welcome');?> <?=htmlspecialchars($_SESSION['login']['username']); ?>!
 										</td>
 									</tr>
 									<tr>
@@ -42,7 +41,7 @@
 									<tr>
 										<td style="padding: 0 0 5px 0;">
 											<button tabindex="3" type="submit" class="button"><?=_('Login');?>&nbsp;&nbsp;&nbsp;<i class="fas fa-sign-in-alt"></i></button>&nbsp;&nbsp;
-											<input type="button" class="button cancel" value="<?=_('Back');?>" onclick="location.href='/login/'">
+											<input type="button" class="button cancel" value="<?=_('Back');?>" onclick="location.href='/login/?logout=true'">
 										</td>
 									</tr>
 								</table>
@@ -60,7 +59,7 @@
 		</tr>
 	</table>
 </center>
-<script src="/inc/jquery/jquery-3.5.1.min.js"></script>
+<script src="/inc/jquery/jquery-3.6.0.min.js"></script>
 </body>
 
 </html>
