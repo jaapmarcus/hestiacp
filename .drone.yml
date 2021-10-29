@@ -16,7 +16,7 @@ steps:
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-  
+
 volumes:
   - name: hestia-src
   host:
