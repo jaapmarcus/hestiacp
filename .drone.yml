@@ -8,11 +8,9 @@ platform:
   arch: arm64
   
 steps:
-  - name: Ubuntu 20.04
-  - image: ubuntu/focal
-    commands:
-      - echo "ssh_key" > ~/.ssh/id_rsa
-      - chmod 600 ~/.ssh/id_rsa
-      - ./src/hst_autocompile.sh --all --noinstall  --keepbuild '~localsrc'
-      - scp /tmp/hestiacp-src/debs/*.deb root@dev.eris.nu:~/
+  steps:
+    - name: Ubuntu 20.04
+      image: ubuntu:focal
+      commands:
+      - echo "Jaap"
   
