@@ -10,7 +10,14 @@ platform:
 steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
+    volumes:
+      - name: packages
+      path: /tmp/hestia-src/debs/
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
 
+volumes:
+  - name: packages
+    host:
+      path: /tmp/packages/
