@@ -248,9 +248,9 @@ if [ "$dontinstalldeps" != 'true' ]; then
         SOFTWARE='build-essential libxml2-dev libz-dev libzip-dev libgmp-dev libcurl4-gnutls-dev unzip openssl libssl-dev pkg-config libsqlite3-dev libonig-dev rpm'
 
         echo "Updating system APT repositories..."
-        apt-get -qq update > /dev/null 2>&1
+        apt-get -qq update
         echo "Installing dependencies for compilation..."
-        apt-get -qq install -y $SOFTWARE > /dev/null 2>&1
+        apt-get -qq install -y $SOFTWARE 
 
         # Fix for Debian PHP Envroiment
         if [ ! -e /usr/local/include/curl ]; then
