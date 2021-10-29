@@ -12,15 +12,15 @@ steps:
     image: ubuntu:focal
     volumes:
       - name: debs
-        path: /tmp/hestia-src
+        path: /tmp/hestiacp-src/
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --hestia --noinstall --keepbuild --debug '~localsrc'
-    - mkdir /tmp/hestia-src/ubuntu-2004/
-    - mv /tmp/hestia-src/debs/*.deb/ /tmp/hestia-src/ubuntu-2004/
-    - rm -fr /tmp/hestia-src/debs/
+    - mkdir /tmp/hestiacp-src/ubuntu-2004/
+    - mv /tmp/hestiacp-src/debs/*.deb/ /tmp/hestiacp-src/ubuntu-2004/
+    - rm -fr /tmp/hestiacp-src/debs/
 
 volumes:
   - name: debs
     host:
-      path: /tmp/hestia-src
+      path: /tmp/hestiacp-src/
