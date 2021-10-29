@@ -245,7 +245,7 @@ if [ "$dontinstalldeps" != 'true' ]; then
         dnf install -y -q $SOFTWARE
     else
         # Set package dependencies for compiling
-        SOFTWARE='build-essential libxml2-dev libz-dev libzip-dev libgmp-dev libcurl4-gnutls-dev unzip openssl libssl-dev pkg-config libsqlite3-dev libonig-dev rpm'
+        SOFTWARE='build-essential libxml2-dev libz-dev libzip-dev libgmp-dev libcurl4-gnutls-dev unzip openssl libssl-dev pkg-config libsqlite3-dev libonig-dev rpm wget curl'
 
         echo "Updating system APT repositories..."
         apt-get -qq update
