@@ -36,5 +36,4 @@ steps:
 
 volumes:
   - name: debs
-    host:
-      temp: {}
+    temp: {}
