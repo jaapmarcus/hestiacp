@@ -22,18 +22,4 @@ steps:
 volumes:
   - name: debs
     host:
-      path: /tmp/hesita-src/
-      
-- name: scp files
-  image: appleboy/drone-scp
-  settings:
-    host:
-      - dev.eris.nu
-    user: root
-    - key:
-      from_secret: ssh_key
-    port: 22
-    command_timeout: 2m
-    target: /root/
-    source:
-      - /tmp/hestia-src/*.deb
+      path: /tmp/hesita-src
