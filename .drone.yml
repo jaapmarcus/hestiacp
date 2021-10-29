@@ -35,7 +35,7 @@ steps:
           path: /tmp/hestiacp-src/
       target: /root/
       source:
-        - /tmp/hestiacp-src//*/*.deb
+        - /tmp/hestiacp-src/*/*.deb
 
 volumes:
   - name: debs
