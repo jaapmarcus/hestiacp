@@ -10,28 +10,7 @@ platform:
 steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
-    volumes:
-      - name: hestia-src
-        path: /tmp/hestia-src/
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
 
-- volumes:
-  - name: hestia-src
-  host:
-    path: /var/lib/cache
-      
-- name: scp files
-  image: appleboy/drone-scp
-  settings:
-    host:
-      - dev.eris.nu
-    user: root
-    key: 
-      from_secret: ssh_key
-    port: 22
-    command_timeout: 2m
-    target: /root/
-    source:
-      - /var/lib/cache/*.deb
