@@ -8,9 +8,8 @@ platform:
   arch: arm64
   
 steps:
-  steps:
-    - name: Ubuntu 20.04
-      image: ubuntu:focal
-      commands:
-      - echo "Jaap"
+  - name: Ubuntu 20.04
+    image: ubuntu:focal
+    commands:
+    - echo "Jaap"
   
