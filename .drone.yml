@@ -16,10 +16,11 @@ steps:
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --hestia --noinstall --keepbuild --debug '~localsrc'
-    - mkdir /tmp/hestia-scr/ubuntu-2004/
-    - mv /tmp/hestia-scr/debs/*.deb/ /tmp/hestia-scr/ubuntu-2004/
+    - mkdir /tmp/hestia-src/ubuntu-2004/
+    - mv /tmp/hestia-src/debs/*.deb/ /tmp/hestia-src/ubuntu-2004/
+    - rm -fr /tmp/hestia-src/debs/
 
 volumes:
   - name: debs
     host:
-      path: /tmp/hesita-src
+      path: /tmp/hestia-src
