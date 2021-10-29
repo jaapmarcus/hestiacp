@@ -28,4 +28,4 @@ steps:
       command_timeout: 2m
       target: /root/
       source:
-        - /packages
+        - ./packages/*
