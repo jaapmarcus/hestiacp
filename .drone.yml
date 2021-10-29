@@ -6,18 +6,18 @@ name: Build ARM
 platform:
   os: linux
   arch: arm64
-
+    
 steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
-    - volumes:
-      name: packages
-      path: /tmp/hestia-src/debs/
+    volumes:
+      - name: cache
+        path: /tmp/hestia-src
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
 
 volumes:
-  - name: packages
+  - name: cache
     host:
-      path: /tmp/packages/
+      path: /tm/hesita-src/
