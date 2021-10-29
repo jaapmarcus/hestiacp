@@ -6,7 +6,7 @@ name: Build ARM
 platform:
   os: linux
   arch: arm64
-  
+
 steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
