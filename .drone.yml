@@ -6,10 +6,10 @@ name: Build ARM
 platform:
   os: linux
   arch: arm64
+  image: ubuntu/focal
   
 steps:
   - name: Ubuntu 20.04
-    image: ubuntu/20.04
     commands:
       - echo "ssh_key" > ~/.ssh/id_rsa
       - chmod 600 ~/.ssh/id_rsa
