@@ -11,5 +11,5 @@ steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
     commands:
-    - echo "Jaap"
+    - ./src/hst_autocompile.sh --hestia --install '~localsrc'
   
