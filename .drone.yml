@@ -11,13 +11,13 @@ steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
     volumes:
-      - name: cache
+      - name: debs
         path: /tmp/hestia-src
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
 
 volumes:
-  - name: cache
+  - name: debs
     host:
-      path: /tm/hesita-src/
+      path: /tmp/hesita-src/
