@@ -23,7 +23,7 @@ HESTIA_INSTALL_DIR="$HESTIA/install/deb"
 VERBOSE='no'
 
 # Define software versions
-HESTIA_INSTALL_VER='1.5.0~alpha'
+HESTIA_INSTALL_VER='1.5.0~beta'
 pma_v='5.1.1'
 rc_v="1.5.0"
 multiphp_v=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0")
@@ -1106,7 +1106,7 @@ mkdir -p $HESTIA/conf $HESTIA/ssl $HESTIA/data/ips \
 touch $HESTIA/data/queue/backup.pipe $HESTIA/data/queue/disk.pipe \
     $HESTIA/data/queue/webstats.pipe $HESTIA/data/queue/restart.pipe \
     $HESTIA/data/queue/traffic.pipe $HESTIA/data/queue/daily.pipe $HESTIA/log/system.log \
-    $HESTIA/log/nginx-error.log $HESTIA/log/auth.log
+    $HESTIA/log/nginx-error.log $HESTIA/log/auth.log $HESTIA/log/backup.log
 chmod 750 $HESTIA/conf $HESTIA/data/users $HESTIA/data/ips $HESTIA/log
 chmod -R 750 $HESTIA/data/queue
 chmod 660 /var/log/hestia/*
