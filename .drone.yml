@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: Build amd64
+name: Build Hestia for AMD64
 
 platform:
   os: linux
@@ -13,36 +13,36 @@ steps:
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/ubuntu-2004
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/ubuntu-2004
+    - mkdir -p ./packages/ubuntu-2004
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/ubuntu-2004
   - name: Ubuntu 18.04
     image: ubuntu:bionic
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/ubuntu-1804
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/ubuntu-1804
+    - mkdir -p ./packages/ubuntu-1804
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/ubuntu-1804
   - name: Debian Bullseye
     image: debian:bullseye
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/debian-11
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-11
+    - mkdir -p ./packages/debian-11
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/debian-11
   - name: Debian Buster
     image: debian:buster
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/debian-10
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-10   
+    - mkdir -p ./packages/debian-10
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/debian-10   
   - name: Debian Stretch
     image: debian:stretch
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/debian-9
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-9   
+    - mkdir -p ./packages/amd64/debian-9
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/amd64/debian-9   
   - name: scp files
     image: appleboy/drone-scp
     settings:
@@ -60,7 +60,7 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: Build ARM
+name: Build Hestia for ARM64
 
 platform:
   os: linux
@@ -72,22 +72,22 @@ steps:
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/ubuntu-2004
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/ubuntu-2004
+    - mkdir -p ./packages/ubuntu-2004
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/ubuntu-2004
   - name: Debian Bullseye
     image: debian:bullseye
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/debian-11
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-11
+    - mkdir -p ./packages/debian-11
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/debian-11
   - name: Debian Buster
     image: debian:buster
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/arm64/debian-10
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-10   
+    - mkdir -p ./packages/debian-10
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/debian-10   
   - name: scp files
     image: appleboy/drone-scp
     settings:
