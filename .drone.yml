@@ -15,7 +15,7 @@ steps:
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
     - mkdir -p ./packages/arm64/ubuntu-2004
     - mv /tmp/hestiacp-src/deb/*.deb ./packages/x86/ubuntu-2004
-  - name: Ubuntu 20.04
+  - name: Ubuntu 18.04
     image: ubuntu:bionic
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
