@@ -73,21 +73,21 @@ steps:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
     - mkdir -p ./packages/arm64/ubuntu-2004
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm/ubuntu-2004
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/ubuntu-2004
   - name: Debian Bullseye
     image: debian:bullseye
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
     - mkdir -p ./packages/arm64/debian-11
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm/debian-11
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-11
   - name: Debian Buster
     image: debian:buster
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
     - mkdir -p ./packages/arm64/debian-10
-    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm/debian-10   
+    - mv /tmp/hestiacp-src/deb/*.deb ./packages/arm64/debian-10   
   - name: scp files
     image: appleboy/drone-scp
     settings:
