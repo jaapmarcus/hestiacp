@@ -174,6 +174,40 @@ fi
 # Clear previous screen output
 clear
 
+if [ "$dontinstalldeps" != 'true' ]; then
+  # Install needed software
+  if [ "$OSTYPE" = 'rhel' ]; then
+      # Set package dependencies for compiling
+      SOFTWARE='gcc gcc-c++ make libxml2-devel zlib-devel libzip-devel gmp-devel libcurl-devel gnutls-devel unzip openssl openssl-devel pkg-config sqlite-devel oniguruma-devel rpm-build wget tar git curl'
+  
+      echo "Updating system DNF repositories..."
+      dnf install -y -q 'dnf-command(config-manager)'
+      dnf install -y -q dnf-plugins-core
+      dnf config-manager --set-enabled powertools > /dev/null 2>&1
+      dnf config-manager --set-enabled PowerTools > /dev/null 2>&1
+      dnf upgrade -y -q
+      echo "Installing dependencies for compilation..."
+      dnf install -y -q $SOFTWARE
+  else
+      # Set package dependencies for compiling
+      SOFTWARE='build-essential libxml2-dev libz-dev libzip-dev libgmp-dev libcurl4-gnutls-dev unzip openssl libssl-dev pkg-config libsqlite3-dev libonig-dev rpm wget curl'
+  
+      echo "Updating system APT repositories..."
+      apt-get -qq update
+      echo "Installing dependencies for compilation..."
+      apt-get -qq install -y $SOFTWARE 
+  
+      # Fix for Debian PHP Envroiment
+      if [ ! -e /usr/local/include/curl ]; then
+          if [ $BUILD_ARCH == "amd64" ]; then
+              ln -s /usr/include/x86_64-linux-gnu/curl /usr/local/include/curl
+          else
+              echo "No x86_64 working"
+          fi
+      fi
+  fi
+fi
+
 # Set command variables
 if [ -z $branch ]; then
     echo -n "Please enter the name of the branch to build from (e.g. main): "
@@ -229,39 +263,7 @@ timestamp() {
     date +%s
 }
 
-if [ "$dontinstalldeps" != 'true' ]; then
-    # Install needed software
-    if [ "$OSTYPE" = 'rhel' ]; then
-        # Set package dependencies for compiling
-        SOFTWARE='gcc gcc-c++ make libxml2-devel zlib-devel libzip-devel gmp-devel libcurl-devel gnutls-devel unzip openssl openssl-devel pkg-config sqlite-devel oniguruma-devel rpm-build wget tar git curl'
 
-        echo "Updating system DNF repositories..."
-        dnf install -y -q 'dnf-command(config-manager)'
-        dnf install -y -q dnf-plugins-core
-        dnf config-manager --set-enabled powertools > /dev/null 2>&1
-        dnf config-manager --set-enabled PowerTools > /dev/null 2>&1
-        dnf upgrade -y -q
-        echo "Installing dependencies for compilation..."
-        dnf install -y -q $SOFTWARE
-    else
-        # Set package dependencies for compiling
-        SOFTWARE='build-essential libxml2-dev libz-dev libzip-dev libgmp-dev libcurl4-gnutls-dev unzip openssl libssl-dev pkg-config libsqlite3-dev libonig-dev rpm wget curl'
-
-        echo "Updating system APT repositories..."
-        apt-get -qq update
-        echo "Installing dependencies for compilation..."
-        apt-get -qq install -y $SOFTWARE 
-
-        # Fix for Debian PHP Envroiment
-        if [ ! -e /usr/local/include/curl ]; then
-            if [ $BUILD_ARCH == "amd64" ]; then
-                ln -s /usr/include/x86_64-linux-gnu/curl /usr/local/include/curl
-            else
-                echo "No x86_64 working"
-            fi
-        fi
-    fi
-fi
 
 # Get system cpu cores
 NUM_CPUS=$(grep "^cpu cores" /proc/cpuinfo | uniq |  awk '{print $4}')

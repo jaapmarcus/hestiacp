@@ -11,7 +11,6 @@ steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
     commands:
-    - apt install curl -y
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --hestia --noinstall --keepbuild --debug 'staging/1.5.0'
     - mkdir -p ./packages/ubuntu-2004
@@ -42,8 +41,6 @@ platform:
 steps:
   - name: Ubuntu 20.04
     image: ubuntu:focal
-    commands:
-    - apt install curl -y
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --hestia --noinstall --keepbuild --debug 'staging/1.5.0'
     - mkdir -p ./packages/ubuntu-2004
