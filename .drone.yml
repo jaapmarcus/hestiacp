@@ -19,7 +19,7 @@ steps:
     image: appleboy/drone-scp
     settings:
       host:
-        - from_secret: apt_server
+        from_secret: apt_server      
       user: root
       key:
         from_secret: ssh_key
@@ -50,7 +50,7 @@ steps:
     image: appleboy/drone-scp
     settings:
       host:
-        - from_secret: apt_server
+        from_secret: apt_server
       user: root
       key:
         from_secret: ssh_key
