@@ -20,14 +20,14 @@ steps:
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/bionic
+    - mkdir -p ./packages/ubuntu/bionic
     - mv /tmp/hestiacp-src/deb/*.deb ./packages/ubuntu/bionic
   - name: Debian Bullseye
     image: debian:bullseye
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/debian-11
+    - mkdir -p ./packages/debian/bullseye
     - mv /tmp/hestiacp-src/deb/*.deb ./packages/debian/bullseye
   - name: Debian Buster
     image: debian:buster
@@ -79,14 +79,14 @@ steps:
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/bionic
+    - mkdir -p ./packages/ubuntu/bionic
     - mv /tmp/hestiacp-src/deb/*.deb ./packages/ubuntu/bionic
   - name: Debian Bullseye
     image: debian:bullseye
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
     - ./src/hst_autocompile.sh --all --noinstall --keepbuild --debug '~localsrc'
-    - mkdir -p ./packages/debian-11
+    - mkdir -p ./packages/debian/bullseye
     - mv /tmp/hestiacp-src/deb/*.deb ./packages/debian/bullseye
   - name: Debian Buster
     image: debian:buster
