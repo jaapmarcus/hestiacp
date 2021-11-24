@@ -9,9 +9,11 @@
 **Forums:** [forum.hestiacp.com](https://forum.hestiacp.com/)<br>
 **Discord:** [Join the discussion](https://discord.gg/nXRUZch)<br />
 <br>
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ST87LQH2CHGLA)<br />
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ST87LQH2CHGLA)<br /><br />
 Bitcoin : bc1q48jt5wg5jaj8g9zy7c3j03cv57j2m2u5anlutu<br>
 Ethereum : 0xfF3Dd2c889bd0Ff73d8085B84A314FC7c88e5D51<br>
+Binance: bnb1l4ywvw5ejfmsgjdcx8jn5lxj7zsun8ktfu7rh8<br>
+Smart Chain: 0xfF3Dd2c889bd0Ff73d8085B84A314FC7c88e5D51<br>
 
 **Welcome!**
 ---------------------------- 
@@ -20,7 +22,7 @@ Hestia Control Panel is designed to provide administrators an easy to use web an
 Features and Services
 ----------------------------
 * Apache2 and NGINX with PHP-FPM
-* Multiple PHP versions (5.6 - 8.0, 8.0 as default)
+* Multiple PHP versions (5.6 - 8.1, 8.0 as default)
 * DNS Server (Bind) with clustering capabilities
 * POP/IMAP/SMTP mail services with Anti-Virus, Anti-Spam, and Webmail (ClamAV, SpamAssassin, Sieve, Roundcube, Rainloop)
 * MariaDB and/or PostgreSQL databases

@@ -19,14 +19,14 @@ os='debian'
 architecture="$(uname -m)"
 release=$(cat /etc/debian_version | tr "." "\n" | head -n1)
 codename="$(cat /etc/os-release |grep VERSION= |cut -f 2 -d \(|cut -f 1 -d \))"
-HESTIA_INSTALL_DIR="$HESTIA/install/deb"
+HESTIA_INSTALL_DIR="$HESTIA/install/deb "
 VERBOSE='no'
 
 # Define software versions
 HESTIA_INSTALL_VER='1.5.0'
 pma_v='5.1.1'
 rc_v="1.5.0"
-multiphp_v=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0")
+multiphp_v=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1")
 fpm_v="8.0"
 mariadb_v="10.6"
 
@@ -145,6 +145,7 @@ set_default_lang() {
 set_default_port() {
     if [ -z "$port" ]; then
         eval port=$1
+        echo "BACKEND_PORT='$port'" >> $HESTIA/conf/hestia.conf
     fi
 }
 
@@ -1530,8 +1531,7 @@ if [ "$mysql" = 'yes' ]; then
 
     # Configuring Apache2 for PHPMYADMIN
     if [ "$apache" = 'yes' ]; then
-        cp -f $HESTIA_INSTALL_DIR/pma/apache.conf /etc/phpmyadmin/
-        ln -s /etc/phpmyadmin/apache.conf /etc/apache2/conf.d/phpmyadmin.conf
+        touch /etc/apache2/conf.d/phpmyadmin.inc
     fi
 
     # Overwrite old files
@@ -1587,7 +1587,7 @@ if [ "$postgresql" = 'yes' ]; then
 
     # Configuring phpPgAdmin
     if [ "$apache" = 'yes' ]; then
-        cp -f $HESTIA_INSTALL_DIR/pga/phppgadmin.conf /etc/apache2/conf.d/
+        cp -f $HESTIA_INSTALL_DIR/pga/phppgadmin.conf /etc/apache2/conf.d/phppgadmin.conf
     fi
     cp -f $HESTIA_INSTALL_DIR/pga/config.inc.php /etc/phppgadmin/
 
