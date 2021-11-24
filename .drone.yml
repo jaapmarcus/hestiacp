@@ -8,7 +8,7 @@ platform:
   arch: amd64
 
 steps:
-- name: Ubuntu 20.04
+  - name: Ubuntu 20.04
     image: ubuntu:focal
     commands:
     - ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo CET > /etc/timezone
