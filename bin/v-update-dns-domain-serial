@@ -1,16 +1,10 @@
 #!/bin/bash
-# info: change dns domain soa record
-# options: USER DOMAIN SOA [RESTART] [BULK UPDATE]
+# info: command function
+# options: USER DOMAIN [RESTART]
 #
-# example: v-change-dns-domain-soa admin acme.com d.ns.domain.tld
+# example: v-update-dns-domain-searial user domain.com yes
 #
-# This function for changing SOA record. This type of records can not be
-# modified by v-change-dns-record call.
-#
-# When more then 99 changes are made in a single day the SERIAL of BIND will overflow
-# the 10 characters to 11 character string causing issues with BIND / DNS service
-# In case of a mass update set BULK UPDATE  to yes to disable increment of SERIAL
-# Last update to make set  BULK UPDATE  to no and make the last change
+# Force update DNS zone / Serial after mass update
 
 #----------------------------------------------------------#
 #                Variables & Functions                     #
@@ -19,37 +13,33 @@
 # Argument definition
 user=$1
 domain=$2
-domain_idn=$2
-soa=$(echo $3 | sed -e 's/\.*$//g' -e 's/^\.*//g')
-restart=$4
-bulk=${5-no}
+$restart=${3-yes}
 
-# Includes
+# Includes - Call any necessary libraries from $HESTIA/func/
 # shellcheck source=/etc/hestiacp/hestia.conf
 source /etc/hestiacp/hestia.conf
 # shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
-# shellcheck source=/usr/local/hestia/func/domain.sh
-source $HESTIA/func/domain.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
 
 # Additional argument formatting
 format_domain
 format_domain_idn
-# TODO: $domain_idn not used in this script - maybe $domain should be converted to $doman_idn ?
 
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
 
-check_args '3' "$#" 'USER DOMAIN SOA [RESTART]'
-is_format_valid 'user' 'domain' 'soa'
+# Insert any necessary verification steps here
+check_args '3' "$#" 'USER DOMAIN IP [RESTART]'
+is_format_valid 'user' 'domain'
 is_system_enabled "$DNS_SYSTEM" 'DNS_SYSTEM'
 is_object_valid 'user' 'USER' "$user"
 is_object_unsuspended 'user' 'USER' "$user"
 is_object_valid 'dns' 'DOMAIN' "$domain"
 is_object_unsuspended 'dns' 'DOMAIN' "$domain"
+
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
@@ -58,37 +48,33 @@ check_hestia_demo_mode
 #                       Action                             #
 #----------------------------------------------------------#
 
-# Changing soa
-update_object_value 'dns' 'DOMAIN' "$domain" '$SOA' "$soa"
-
-if [ "$bulk" != "yes" ]; then 
-    # Updating zone
-    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
         update_domain_serial
         update_domain_zone
-    fi
-    
+fi
+
+# Updating dns-cluster queue
+if [ -n "$DNS_CLUSTER" ]; then
     # Updating dns-cluster queue
     if [ -n "$DNS_CLUSTER" ]; then
         # Check for first sync
         dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
         if [ -z "$dlock" ]; then
-            cmd="$BIN/v-change-remote-dns-domain-soa $user $domain $soa"
+            cmd="$BIN/v-add-remote-dns-domain $user $domain yes"
             echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
         fi
     fi
+    
 fi
 
 #----------------------------------------------------------#
 #                       Hestia                             #
 #----------------------------------------------------------#
 
-# Restarting named
-$BIN/v-restart-dns "$restart"
-check_result $? "DNS restart failed" >/dev/null
+# Insert logging or last stage service restarts here
 
 # Logging
-$BIN/v-log-action "$user" "Info" "DNS" "SOA record for DNS domain changed (SOA: $soa, Domain: $domain)."
+$BIN/v-log-action "$user" "Info" "DNS" "Updated DNS SERIAL (Domain: $domain)."
 log_event "$OK" "$ARGUMENTS"
 
 exit

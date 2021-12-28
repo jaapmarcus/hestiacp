@@ -1,10 +1,15 @@
 #!/bin/bash
 # info: change dns domain record
-# options: USER DOMAIN ID RECORD TYPE VALUE [PRIORITY] [RESTART] [TTL]
+# options: USER DOMAIN ID RECORD TYPE VALUE [PRIORITY] [RESTART] [TTL] [BULK UPDATE]
 #
 # example: v-change-dns-record admin domain.ua 42 192.18.22.43
 #
 # This function for changing DNS record.
+#
+# When more then 99 changes are made in a single day the SERIAL of BIND will overflow
+# the 10 characters to 11 character string causing issues with BIND / DNS service
+# In case of a mass update set BULK UPDATE  to yes to disable increment of SERIAL
+# Last update to make set  BULK UPDATE  to no and make the last change
 
 #----------------------------------------------------------#
 #                Variables & Functions                     #
@@ -21,6 +26,7 @@ dvalue=$(idn -t --quiet -u "$6" )
 priority=$7
 restart=$8
 ttl=$9
+bulk=${10|no}
 
 # Includes
 # shellcheck source=/etc/hestiacp/hestia.conf
@@ -110,19 +116,21 @@ echo "$dns_rec" >> $USER_DATA/dns/$domain.conf
 # Sorting records
 sort_dns_records
 
-# Updating zone
-if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
-    update_domain_serial
-    update_domain_zone
-fi
-
-# Updating dns-cluster queue
-if [ -n "$DNS_CLUSTER" ]; then
-    # Check for first sync
-    dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
-    if [ -z "$dlock" ]; then
-        cmd="$BIN/v-add-remote-dns-domain $user $domain records"
-        echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+if [ "$bulk" != "yes" ]; then
+    # Updating zone
+    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+        update_domain_serial
+        update_domain_zone
+    fi
+    
+    # Updating dns-cluster queue
+    if [ -n "$DNS_CLUSTER" ]; then
+        # Check for first sync
+        dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
+        if [ -z "$dlock" ]; then
+            cmd="$BIN/v-add-remote-dns-domain $user $domain records"
+            echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+        fi
     fi
 fi
 

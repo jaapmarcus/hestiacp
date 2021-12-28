@@ -1,10 +1,15 @@
 #!/bin/bash
 # info: delete dns record
-# options: USER DOMAIN ID [RESTART]
+# options: USER DOMAIN ID [RESTART] [BULK UPDATE]
 #
 # example: v-delete-dns-record bob acme.com 42 yes
 #
 # This function for deleting a certain record of DNS zone.
+#
+# When more then 99 changes are made in a single day the SERIAL of BIND will overflow
+# the 10 characters to 11 character string causing issues with BIND / DNS service
+# In case of a mass update set BULK UPDATE  to yes to disable increment of SERIAL
+# Last update to make set  BULK UPDATE  to no and make the last change
 
 #----------------------------------------------------------#
 #                Variables & Functions                     #
@@ -17,6 +22,7 @@ domain_idn=$2
 id=$3
 restart=$4
 quiet=$5
+bulk=${6-no}
 
 # Includes
 # shellcheck source=/etc/hestiacp/hestia.conf
@@ -54,22 +60,23 @@ check_hestia_demo_mode
 # Deleting record
 sed -i "/^ID='$id'/d" $USER_DATA/dns/$domain.conf
 
-# Updating zone
-if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
-    update_domain_serial
-    update_domain_zone
-fi
-
-# Updating dns-cluster queue
-if [ -n "$DNS_CLUSTER" ]; then
-    # Check for first sync
-    dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
-    if [ -z "$dlock" ]; then
-        cmd="$BIN/v-delete-remote-dns-record $user $domain $id"
-        echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+if [ "$bulk" != "yes" ]; then
+    # Updating zone
+    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+        update_domain_serial
+        update_domain_zone
+    fi
+    
+    # Updating dns-cluster queue
+    if [ -n "$DNS_CLUSTER" ]; then
+        # Check for first sync
+        dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
+        if [ -z "$dlock" ]; then
+            cmd="$BIN/v-delete-remote-dns-record $user $domain $id"
+            echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+        fi
     fi
 fi
-
 #----------------------------------------------------------#
 #                       Hestia                             #
 #----------------------------------------------------------#

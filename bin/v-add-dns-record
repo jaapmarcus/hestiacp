@@ -1,6 +1,6 @@
 #!/bin/bash
 # info: add dns record
-# options: USER DOMAIN RECORD TYPE VALUE [PRIORITY] [ID] [RESTART] [TTL]
+# options: USER DOMAIN RECORD TYPE VALUE [PRIORITY] [ID] [RESTART] [TTL] [QUIET] [BULK UPDATE]
 #
 # example: v-add-dns-record admin acme.com www A 162.227.73.112
 #
@@ -8,6 +8,11 @@
 # SRV types can be used by a filling in the 'value' argument. This function also
 # gets an ID parameter for definition of certain record identifiers or for the
 # regulation of records.
+# 
+# When more then 99 changes are made in a single day the SERIAL of BIND will overflow
+# the 10 characters to 11 character string causing issues with BIND / DNS service
+# In case of a mass update set BULK UPDATE  to yes to disable increment of SERIAL
+# Last update to make set  BULK UPDATE  to no and make the last change
 
 #----------------------------------------------------------#
 #                Variables & Functions                     #
@@ -26,6 +31,7 @@ id=$7
 restart=$8
 ttl=$9
 quiet=${10}
+bulk=${11|no}
 
 if [ -z "$priority" ]; then
     priority=10
@@ -121,18 +127,20 @@ chmod 660 $zone
 sort_dns_records
 
 # Updating zone
-if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
-    update_domain_serial
-    update_domain_zone
-fi
-
-# Updating dns-cluster queue
-if [ -n "$DNS_CLUSTER" ]; then
-    # Check for first sync
-    dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
-    if [ -z "$dlock" ]; then
-        cmd="$BIN/v-add-remote-dns-record $user $domain $id"
-        echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+if [ "$bulk" != "yes" ]; then 
+    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+            update_domain_serial
+            update_domain_zone
+    fi
+    
+    # Updating dns-cluster queue
+    if [ -n "$DNS_CLUSTER" ]; then
+        # Check for first sync
+        dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
+        if [ -z "$dlock" ]; then
+            cmd="$BIN/v-add-remote-dns-record $user $domain $id"
+            echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+        fi
     fi
 fi
 

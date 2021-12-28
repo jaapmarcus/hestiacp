@@ -5,7 +5,11 @@
 # example: v-change-dns-domain-ip admin domain.com 123.212.111.222
 #
 # This function for changing the main ip of DNS zone.
-
+#
+# When more then 99 changes are made in a single day the SERIAL of BIND will overflow
+# the 10 characters to 11 character string causing issues with BIND / DNS service
+# In case of a mass update set BULK UPDATE  to yes to disable increment of SERIAL
+# Last update to make set  BULK UPDATE  to no and make the last change
 #----------------------------------------------------------#
 #                Variables & Functions                     #
 #----------------------------------------------------------#
@@ -16,6 +20,7 @@ domain=$2
 domain_idn=$2
 ip=$3
 restart=$4
+bulk=${5-no}
 
 # Includes
 # shellcheck source=/etc/hestiacp/hestia.conf
@@ -61,19 +66,21 @@ update_object_value 'dns' 'DOMAIN' "$domain" '$IP' "$ip"
 # Changing records
 sed -i "s/$old/$ip/g" $USER_DATA/dns/$domain.conf
 
-# Updating zone
-if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
-    update_domain_serial
-    update_domain_zone
-fi
-
-# Updating dns-cluster queue
-if [ -n "$DNS_CLUSTER" ]; then
-    # Check for first sync
-    dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
-    if [ -z "$dlock" ]; then
-        cmd="$BIN/v-add-remote-dns-domain $user $domain domain yes"
-        echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+if [ "$bulk" != "yes" ];then
+    # Updating zone
+    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+        update_domain_serial
+        update_domain_zone
+    fi
+    
+    # Updating dns-cluster queue
+    if [ -n "$DNS_CLUSTER" ]; then
+        # Check for first sync
+        dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
+        if [ -z "$dlock" ]; then
+            cmd="$BIN/v-add-remote-dns-domain $user $domain domain yes"
+            echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+        fi
     fi
 fi
 

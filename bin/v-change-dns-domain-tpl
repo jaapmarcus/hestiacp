@@ -1,12 +1,18 @@
 #!/bin/bash
 # info: change dns domain template
-# options: USER DOMAIN TEMPLATE [RESTART]
+# options: USER DOMAIN TEMPLATE [RESTART] [BULK UPDATE]
+#
 #
 # example: v-change-dns-domain-tpl admin example.com child-ns yes
 #
 # This function for changing the template of records. By updating old records
 # will be removed and new records will be generated in accordance with
 # parameters of new template.
+#
+# When more then 99 changes are made in a single day the SERIAL of BIND will overflow
+# the 10 characters to 11 character string causing issues with BIND / DNS service
+# In case of a mass update set BULK UPDATE  to yes to disable increment of SERIAL
+# Last update to make set  BULK UPDATE  to no and make the last change
 
 #----------------------------------------------------------#
 #                Variables & Functions                     #
@@ -18,6 +24,7 @@ domain=$2
 domain_idn=$2
 template=$3
 restart=$4
+bulk=${5-no}
 
 # Includes
 # shellcheck source=/etc/hestiacp/hestia.conf
@@ -108,7 +115,7 @@ if [ "$template" = "default" ] || [ "$template" = "child-ns" ]; then
         check_dns_domain=$(is_object_valid 'dns' 'DOMAIN' "$domain")
         if [ "$?" -eq 0 ]; then
             p=$(cat "$USER_DATA/mail/$domain.pub" |grep -v ' KEY---'|tr -d '\n')
-            record='_domainkey'
+            record='_domainkey'if [ "$bulk" = "yes" ]; then
             policy="\"t=y; o=~;\""
             $BIN/v-add-dns-record "$user" "$domain" "$record" TXT "$policy" '' '' 'no'
 
@@ -129,22 +136,23 @@ if [ "$template" = "office365" ]; then
     fi
 fi
 
-# Updating zone
-if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
-    update_domain_serial
-    update_domain_zone
-fi
-
-# Updating dns-cluster queue
-if [ ! -z "$DNS_CLUSTER" ]; then
-    # Check for first sync
-    dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
-    if [ -z "$dlock" ]; then
-        cmd="$BIN/v-add-remote-dns-domain $user $domain domain"
-        echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+if [ "$bulk" = "yes" ]; then
+    # Updating zone
+    if [[ "$DNS_SYSTEM" =~ named|bind ]]; then
+        update_domain_serial
+        update_domain_zone
+    fi
+    
+    # Updating dns-cluster queue
+    if [ ! -z "$DNS_CLUSTER" ]; then
+        # Check for first sync
+        dlock=$(grep "domain $user $domain" $HESTIA/data/queue/dns-cluster.pipe)
+        if [ -z "$dlock" ]; then
+            cmd="$BIN/v-add-remote-dns-domain $user $domain domain"
+            echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
+        fi
     fi
 fi
-
 #----------------------------------------------------------#
 #                       Hestia                             #
 #----------------------------------------------------------#

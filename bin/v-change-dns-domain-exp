@@ -67,7 +67,7 @@ fi
 #----------------------------------------------------------#
 
 # Logging
-$BIN/v-log-action "$user" "Info" "DNS" "Updated DNS SOA expiration date (Domain: $domain, Value: $exp)."
+$BIN/v-log-action "$user" "Info" "DNS" "Updated DNS expiration date (Domain: $domain, Value: $exp)."
 log_event "$OK" "$ARGUMENTS"
 
 exit
