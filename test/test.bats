@@ -257,7 +257,6 @@ function check_ip_not_banned(){
   refute_output
 }
 
-
 #----------------------------------------------------------#
 #                           IP                             #
 #----------------------------------------------------------#
@@ -1173,6 +1172,28 @@ function check_ip_not_banned(){
     run v-rebuild-dns-domains $user
     assert_success
     refute_output
+}
+
+@test "Bulk Update DNS" {
+  serial=$(head /home/$user.conf/dns/$domain.db |grep 'SOA' -A1 |tail -n 1 |sed "s/ //g")
+  run v-add-dns-record $user $domain test2 A 198.18.0.125 21 no "" "" yes
+  assert_success
+  refute_output
+  serial2=$(head /home/$user.conf/dns/$domain.db |grep 'SOA' -A1 |tail -n 1 |sed "s/ //g")
+  run [ $serial = $serial2 ]
+  assert_success
+  refute_output
+}
+
+@test "Bulk Update DNS Update serial" {
+  serial=$(head /home/$user.conf/dns/$domain.db |grep 'SOA' -A1 |tail -n 1 |sed "s/ //g")
+  run v-update-dns-domain-serial $user $domain
+  assert_success
+  refute_output
+  serial2=$(head /home/$user.conf/dns/$domain.db |grep 'SOA' -A1 |tail -n 1 |sed "s/ //g")
+  run [ $serial != $serial2 ]
+  assert_success
+  refute_output
 }
 
 #----------------------------------------------------------#

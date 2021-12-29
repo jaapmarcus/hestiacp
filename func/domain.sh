@@ -548,6 +548,23 @@ update_domain_serial() {
     update_object_value 'dns' 'DOMAIN' "$domain" '$SERIAL' "$serial"
 }
 
+is_able_increment_serial(){
+    zn_conf="$HOMEDIR/$user/conf/dns/$domain.db"
+    if [ -e $zn_conf ]; then  
+        zn_serial=$(head $zn_conf |grep 'SOA' -A1 |tail -n 1 |sed "s/ //g")
+        s_date=$(echo ${zn_serial:0:8})
+        c_date=$(date +'%Y%m%d')
+        if [ "$s_date" == "$c_date" ]; then
+            cur_value=$(echo ${zn_serial:8} )
+            new_value=$(expr $cur_value + 1 )
+            len_value=$(expr length $new_value)
+        fi
+        if [ "$len_value" -gt 2 ]; then 
+          check_result "$E_INVALID" "DNS Zone serial overflow. Max of 99 daily changes reached"
+        fi
+    fi
+}
+
 # Get next DNS record ID
 get_next_dnsrecord(){
     if [ -z "$id" ]; then

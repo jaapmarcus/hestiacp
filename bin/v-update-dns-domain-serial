@@ -39,6 +39,7 @@ is_object_valid 'user' 'USER' "$user"
 is_object_unsuspended 'user' 'USER' "$user"
 is_object_valid 'dns' 'DOMAIN' "$domain"
 is_object_unsuspended 'dns' 'DOMAIN' "$domain"
+is_able_increment_serial "$user" "$domain"
 
 
 # Perform verification if read-only mode is enabled

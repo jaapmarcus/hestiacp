@@ -31,6 +31,7 @@ check_args '2' "$#" 'USER SRC [RESTART]'
 is_format_valid 'user' 'src'
 is_system_enabled "$DNS_SYSTEM" 'DNS_SYSTEM'
 is_object_valid 'user' 'USER' "$user"
+is_able_increment_serial "$user" "$domain"
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode

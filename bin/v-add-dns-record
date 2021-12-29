@@ -31,7 +31,7 @@ id=$7
 restart=$8
 ttl=$9
 quiet=${10}
-bulk=${11|no}
+bulk=${11-no}
 
 if [ -z "$priority" ]; then
     priority=10
@@ -88,7 +88,7 @@ format_domain_idn
 #                    Verifications                         #
 #----------------------------------------------------------#
 
-check_args '5' "$#" 'USER DOMAIN RECORD TYPE VALUE [PRIORITY] [ID] [RESTART] [TTL]'
+check_args '5' "$#" 'USER DOMAIN RECORD TYPE VALUE [PRIORITY] [ID] [RESTART] [TTL] [QUIET] [BULK UPDATE]'
 is_format_valid 'user' 'domain' 'record' 'rtype' 'dvalue'
 is_system_enabled "$DNS_SYSTEM" 'DNS_SYSTEM'
 is_object_valid 'user' 'USER' "$user"
@@ -102,6 +102,7 @@ is_object_new "dns/$domain" 'ID' "$id"
 is_dns_fqnd "$rtype" "$dvalue"
 is_dns_nameserver_valid "$domain" "$rtype" "$dvalue"
 is_format_valid 'ttl'
+is_able_increment_serial "$user" "$domain"
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode

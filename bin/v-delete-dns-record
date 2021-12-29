@@ -43,12 +43,13 @@ format_domain_idn
 #                    Verifications                         #
 #----------------------------------------------------------#
 
-check_args '3' "$#" 'USER DOMAIN ID [RESTART]'
+check_args '3' "$#" 'USER DOMAIN ID [RESTART] [BULK UPDATE]'
 is_format_valid 'user' 'domain' 'id'
 is_object_valid 'user' 'USER' "$user"
 is_object_valid 'dns' 'DOMAIN' "$domain"
 is_object_valid "dns/$domain" 'ID' "$id"
 is_dns_record_critical
+is_able_increment_serial "$user" "$domain"
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
