@@ -280,8 +280,6 @@ timestamp() {
                 ln -s /usr/include/x86_64-linux-gnu/curl /usr/local/include/curl
             fi
         fi
-    fi
-fi
 
 # Get system cpu cores
 NUM_CPUS=$(grep "^cpu cores" /proc/cpuinfo | uniq |  awk '{print $4}')
