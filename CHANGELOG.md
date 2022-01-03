@@ -1,15 +1,96 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.5.3] - Service release
+
+### Features
+
+### Bugfixes
+
+- Fixed an issue where suspended objects where excluded in disk size calculation (#2312 #2313)
+- Fixed an issue when a users was unable edit them self when 2FA was enabled (#2314 #2316)
+- Fixed an issue in v-add-user-sftp as ftp users where not recognised as valid sftp jail set ups (#2308 #2319)
+- Fixed an issue when "Preview" features got disabled it kept the preview features enabled (#2322 #2323)
+- Limit access openbase dir hestia-php
+
+### Dependencies
+
+- Update PCRE Version 1.8.84 to PCRE 2.10.39
+- Update Roundcube to 1.5.2 ([Release notes](https://github.com/roundcube/roundcubemail/releases/tag/1.5.2))
+- Update PHPMailer to 7.5.3 ([Release message](https://github.com/PHPMailer/PHPMailer/releases/tag/v6.5.3))
+
+## [1.5.2] - Service release
+
+### Features
+
+- Release notes are now available from the notification panel (#2276)
+- Web domain aliases are now displayed in the domain list (#2278 / #2289)
+- DNS, Mail, and Database sections will now be hidden in /edit/server if not installed (#2300)
+- Turkey has been added as an option for ipset (#2294)
+
+### Bugfixes
+
+- Improvements have been made to overall code quality (#2293, #2298, #2307)
+- Added improvements to the automated testing suite (bats) (#2280)
+- Clarified text that is shown during upgrade process (#2270)
+- Updated web domain templates to allow the use of .user.ini (#2267 / #2269)
+- Fixed an issue with the curl symlink on Debian during build process (#2275)
+- Fixed an issue where CAA records were deleted when turning off SSL for webmail (#2279)
+- Fixed an issue where email validation would fail when using IDN domains (#2273)
+- Changed behavior to prevent php-fpm restarts when modphp is installed (#2270)
+- Fixed an issue where passwords may not be correctly set on Debian 11 (#2270)
+- Fixed an issue with command path v-change-firewall-rule (#2249)
+- Fixed an issue in `v-backup-user` where you may encounter an error "invalid parameters for check_result" (#2284)
+- Fixed an issue which impacted the performance of Nextcloud/Owncloud ([forum post](https://forum.hestiacp.com/t/tip-create-a-nginx-template-for-nextcloud-to-let-synchronize-files-bigger-than-10mb/5123))
+- Fixed an issue where the access port for HestiaCP was not properly set on install (#2288 / #2291)
+- Fixed an issue where admins could not log in as a suspended user in the panel (#2286 / #2289)
+- Fixed an issue where the "Delete" button in the Edit User interface did not work as expected (#2282 / #2289)
+- Fixed an issue where editing an existing firewall rule with ipset would fail (#2292)
+- Fixed an error that may occur in /edit/server when no extra php versions were installed (#2289)
+- Fixed an issue where accessing the panel via Safari would result in error NSPOSIXErrorDomain:100 (#2274)
+- Corrected command syntax in v-delete-dns-records (#2295)
+- Fixed an issue where API allowed IP list values would be lost when saving changes (#2296 / #2300)
+- Fixed an issue where the debug mode option was not displayed on release builds and would be reset when saving server settings (#2300)
+- Fixed an issue where grep would throw an error when adding ipset rules for the first time (#2307)
+- Fixed incorrect variable spelling ($v_interace > $v_interface) (#2307)
+- Updated mail domain templates
+- Updated command line examples for docs.hestiacp.com
+- Fixed an issue where Lets encrypt was not able to obtain an valid ssl certificate when force ssl and / or redirect was enabled (#2176 / #2304 / #2304)
+- Fixed a issue in v-list-sys-dns-status
+
+### Dependencies
+
+
+## [1.5.1] - Service release
+
+### Bugfixes
+
+- Add B2 delete file support to BlackBlaze
+- Open phpmyadmin in new tab or window #2250 @manuelserol
+- Fix issue with ipset not working properly [Forum](https://forum.hestiacp.com/t/error-ipset-object-not-found/5015)
+- Improve port detection on multiple servers for SSH #2242 and #2255
+- Fixed an issue with # in config files
+- Fixed multiple bugs in installer
+- Set correct permission /install/deb/ folder 
+- Adjust /etc/apt/sources.list.d/hestia.list to include architecture to resolve issue with I386 missing in apt.hestiacp.com
+- Fallback to hostname without retrying ptr lookup in exim (#2259)
+- Enable quota with in dovecot when sieve is enabled @madito
+- Unable to edit php8.1 service #2261
+
+### Dependencies
+
+- Update Roundcube to 1.5.1 [Release Notice](https://roundcube.net/news/2021/11/28/update-1.5.1-released)
+
 ## [1.5.0] - Major Release (Feature / Quality Update)
 
 ### Breaking changes ###
 - **NOTE:** Changes have been made on how phpmyadmin/phppgadmin config are included in apache2 config. To restore to the old behaviour add `IncludeOptional conf.d/*.inc` below `IncludeOptional conf.d/*.conf` in /etc/apache2/apache2.conf and restart your server. 
 - **NOTE:** Hestia packages for arm64 has been added to atp.hestiacp.com please use the normal install instructions instead! For current ARM installs to enable auto update remove the `#` in /etc/apt/sources.list.d/hestia.list `# deb https://apt.hestiacp.com/ focal main` becomes `deb https://apt.hestiacp.com/ focal main` and then run `apt update && apt upgrade -y` 
+- **NOTE:** Make sure your server / VPS has a valid PTR record or otherwise you will not be able to send any mail!
 
 ### Features
 
-- Add support for Dovecote Sieve #2163 (@gejobj)
+- Add support for Dovecote Sieve #2163 (@gejobj) => [How to enable Managesieve](https://docs.hestiacp.com/admin_docs/mail.html#how-can-i-enable-managesieve)
 - Improve HELO based system and use RDNS lookup instead our old system
 - Add support for PHP 8.1 #2233 
 - Set default php version for new installs to PHP 8.0 

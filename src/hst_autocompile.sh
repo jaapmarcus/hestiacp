@@ -250,7 +250,7 @@ echo "Build version $BUILD_VER, with Nginx version $NGINX_V and PHP version $PHP
 
 HESTIA_V="${BUILD_VER}_${BUILD_ARCH}"
 OPENSSL_V='1.1.1l'
-PCRE_V='8.45'
+PCRE_V='10.39'
 ZLIB_V='1.2.11'
 
 # Create build directories
@@ -268,6 +268,20 @@ timestamp() {
 }
 
 
+
+        echo "Updating system APT repositories..."
+        apt-get -qq update > /dev/null 2>&1
+        echo "Installing dependencies for compilation..."
+        apt-get -qq install -y $SOFTWARE > /dev/null 2>&1
+
+        # Fix for Debian PHP Envroiment
+        if [ $BUILD_ARCH == "amd64" ]; then
+            if [ ! -L /usr/local/include/curl ]; then
+                ln -s /usr/include/x86_64-linux-gnu/curl /usr/local/include/curl
+            fi
+        fi
+    fi
+fi
 
 # Get system cpu cores
 NUM_CPUS=$(grep "^cpu cores" /proc/cpuinfo | uniq |  awk '{print $4}')
@@ -294,7 +308,7 @@ fi
 HESTIA_ARCHIVE_LINK='https://github.com/hestiacp/hestiacp/archive/'$branch'.tar.gz'
 NGINX='https://nginx.org/download/nginx-'$(echo $NGINX_V |cut -d"~" -f1)'.tar.gz'
 OPENSSL='https://www.openssl.org/source/openssl-'$OPENSSL_V'.tar.gz'
-PCRE='https://sourceforge.net/projects/pcre/files/pcre/'$PCRE_V'/pcre-'$PCRE_V'.tar.gz/download'
+PCRE='https://github.com/PhilipHazel/pcre2/releases/download/pcre2-'$PCRE_V'/pcre2-'$PCRE_V'.tar.gz'
 ZLIB='https://www.zlib.net/zlib-'$ZLIB_V'.tar.gz'
 PHP='http://de2.php.net/distributions/php-'$(echo $PHP_V |cut -d"~" -f1)'.tar.gz'
 
@@ -346,7 +360,7 @@ if [ "$NGINX_B" = true ] ; then
                       --with-openssl-opt=no-nextprotoneg \
                       --with-openssl-opt=no-weak-ssl-ciphers \
                       --with-openssl-opt=no-ssl3 \
-                      --with-pcre=../pcre-$PCRE_V \
+                      --with-pcre=../pcre2-$PCRE_V \
                       --with-pcre-jit \
                       --with-zlib=../zlib-$ZLIB_V
     fi
@@ -644,7 +658,7 @@ if [ "$HESTIA_B" = true ]; then
       # Allow the executable to be executed
       chmod +x $BUILD_DIR_HESTIA/usr/local/hestia/bin/*
       find $BUILD_DIR_HESTIA/usr/local/hestia/install/ \( -name '*.sh' \) -exec chmod +x {} \;
-      chmod -x $BUILD_DIR_HESTIA/usr/local/hestia/install/* 
+      chmod -x $BUILD_DIR_HESTIA/usr/local/hestia/install/*.sh
       chown -R root:root $BUILD_DIR_HESTIA
   
       if [ "$BUILD_DEB" = true ]; then

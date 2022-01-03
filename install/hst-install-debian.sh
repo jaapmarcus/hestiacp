@@ -1,6 +1,14 @@
 #!/bin/bash
 
-# Hestia Debian installer v1.0
+# ======================================================== #
+#
+# Hestia Control Panel Installer for Debian
+# https://www.hestiacp.com/
+#
+# Currently Supported Versions:
+# Debian 9, 10, 11
+#
+# ======================================================== #
 
 #----------------------------------------------------------#
 #                  Variables&Functions                     #
@@ -23,9 +31,9 @@ HESTIA_INSTALL_DIR="$HESTIA/install/deb "
 VERBOSE='no'
 
 # Define software versions
-HESTIA_INSTALL_VER='1.5.0'
+HESTIA_INSTALL_VER='1.5.3~alpha'
 pma_v='5.1.1'
-rc_v="1.5.0"
+rc_v="1.5.1"
 multiphp_v=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1")
 fpm_v="8.0"
 mariadb_v="10.6"
@@ -567,7 +575,7 @@ fi
 
 # Firewall stack
 if [ "$iptables" = 'yes' ]; then
-    echo -n '   - Firewall (Iptables)'
+    echo -n '   - Firewall (iptables)'
 fi
 if [ "$iptables" = 'yes' ] && [ "$fail2ban" = 'yes' ]; then
     echo -n ' + Fail2Ban Access Monitor'
@@ -630,7 +638,7 @@ fi
 mask1='(([[:alnum:]](-?[[:alnum:]])*)\.)'
 mask2='*[[:alnum:]](-?[[:alnum:]])+\.[[:alnum:]]{2,}'
 if ! [[ "$servername" =~ ^${mask1}${mask2}$ ]]; then
-    if [ -n "$servername" ]; then
+    if [[ -n "$servername" ]]; then
         servername="$servername.example.com"
     else
         servername="example.com"
@@ -638,12 +646,12 @@ if ! [[ "$servername" =~ ^${mask1}${mask2}$ ]]; then
     echo "127.0.0.1 $servername" >> /etc/hosts
 fi
 
-if [ -z $(grep -i "$servername" /etc/hosts) ]; then
-  echo "127.0.0.1 $servername" >> /etc/hosts
+if [[ -z $(grep -i "$servername" /etc/hosts) ]]; then
+    echo "127.0.0.1 $servername" >> /etc/hosts
 fi
 
 # Set email if it wasn't set
-if [ -z "$email" ]; then
+if [[ -z "$email" ]]; then
     email="admin@$servername"
 fi
 
@@ -709,7 +717,7 @@ fi
 
 # Installing HestiaCP repo
 echo "[ * ] Hestia Control Panel"
-echo "deb https://$RHOST/ $codename main" > $apt/hestia.list
+echo "deb [arch=$ARCH] https://$RHOST/ $codename main" > $apt/hestia.list
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A189E93654F0B0E5 > /dev/null 2>&1
 
 # Installing PostgreSQL repo
@@ -1063,9 +1071,11 @@ source /etc/profile.d/hestia.sh
 # Configuring logrotate for Hestia logs
 cp -f $HESTIA_INSTALL_DIR/logrotate/hestia /etc/logrotate.d/hestia
 
+# Create log path and symbolic link
 rm -f /var/log/hestia
 mkdir -p /var/log/hestia
 ln -s /var/log/hestia $HESTIA/log
+
 # Building directory tree and creating some blank files for Hestia
 mkdir -p $HESTIA/conf $HESTIA/ssl $HESTIA/data/ips \
     $HESTIA/data/queue $HESTIA/data/users $HESTIA/data/firewall \
@@ -1083,6 +1093,10 @@ chmod 770 $HESTIA/data/sessions
 rm -f $HESTIA/conf/hestia.conf > /dev/null 2>&1
 touch $HESTIA/conf/hestia.conf
 chmod 660 $HESTIA/conf/hestia.conf
+
+# Write default port value to hestia.conf
+# If a custom port is specified it will be set at the end of the installation process.
+write_config_value "BACKEND_PORT" "8083"
 
 # Web stack
 if [ "$apache" = 'yes' ]; then
@@ -1274,7 +1288,7 @@ check_result $? "can't enable sftp jail"
 # Switch to sha512 for deb11.
 if [ "$release" -eq 11 ]; then
     # Switching to sha512
-    sed -i "s/obscure yescrypt/obscure sha512/g" /etc/pam.d/common-password
+    sed -i "s/ yescrypt/ sha512/g" /etc/pam.d/common-password
 fi
 
 # Adding Hestia admin account
@@ -1817,7 +1831,7 @@ if [ "$sieve" = 'yes' ]; then
     #  10-master.conf
     sed -i -E -z "s/  }\n  user = dovecot\n}/  \}\n  unix_listener auth-master \{\n    group = mail\n    mode = 0660\n    user = dovecot\n  \}\n  user = dovecot\n\}/g" /etc/dovecot/conf.d/10-master.conf
     #  15-lda.conf
-    sed -i "s/\#mail_plugins = \\\$mail_plugins/mail_plugins = \$mail_plugins sieve\n  auth_socket_path = \/var\/run\/dovecot\/auth-master/g" /etc/dovecot/conf.d/15-lda.conf
+    sed -i "s/\#mail_plugins = \\\$mail_plugins/mail_plugins = \$mail_plugins quota sieve\n  auth_socket_path = \/var\/run\/dovecot\/auth-master/g" /etc/dovecot/conf.d/15-lda.conf
     #  20-imap.conf
     sed -i "s/mail_plugins = quota imap_quota/mail_plugins = quota imap_quota imap_sieve/g" /etc/dovecot/conf.d/20-imap.conf
     
@@ -1877,7 +1891,7 @@ if [ "$exim" = 'yes' ] && [ "$mysql" = 'yes' ]; then
 fi
 
 # Configuring system IPs
-echo "[ * ] Configure System IP..."
+echo "[ * ] Configuring System IP..."
 $HESTIA/bin/v-update-sys-ip > /dev/null 2>&1
 
 # Get main IP
@@ -1992,13 +2006,17 @@ chmod 755 /backup/
 echo "@reboot root sleep 10 && rm /etc/cron.d/hestia-ssl && /usr/local/hestia/bin/v-add-letsencrypt-host" > /etc/cron.d/hestia-ssl
 
 #----------------------------------------------------------#
-#                  Configure File Manager                   #
+#                  Configure File Manager                  #
 #----------------------------------------------------------#
 
 echo "[ * ] Configuring File Manager..."
 $HESTIA/bin/v-add-sys-filemanager quiet
 
-echo "[ * ] Finish up install..."
+#----------------------------------------------------------#
+#              Set hestia.conf default values              #
+#----------------------------------------------------------#
+
+echo "[ * ] Updating configuration files..."
 write_config_value "PHPMYADMIN_KEY" ""
 write_config_value "POLICY_USER_VIEW_SUSPENDED" "no"
 write_config_value "POLICY_USER_VIEW_LOGS" "yes"
@@ -2061,16 +2079,17 @@ we hope that you enjoy using it as much as we do!
 Please feel free to contact us at any time if you have any questions,
 or if you encounter any bugs or problems:
 
-Web:     https://www.hestiacp.com/
-Forum:   https://forum.hestiacp.com/
-Discord: https://discord.gg/nXRUZch
-GitHub:  https://www.github.com/hestiacp/hestiacp
+Documentation:  https://docs.hestiacp.com/
+Forum:          https://forum.hestiacp.com/
+Discord:        https://discord.gg/nXRUZch
+GitHub:         https://www.github.com/hestiacp/hestiacp
 
 Note: Automatic updates are enabled by default. If you would like to disable them,
 please log in and navigate to Server > Updates to turn them off.
 
 Help support the Hestia Control Panel project by donating via PayPal:
 https://www.hestiacp.com/donate
+
 --
 Sincerely yours,
 The Hestia Control Panel development team
@@ -2094,12 +2113,11 @@ $HESTIA/bin/v-add-user-notification admin 'Welcome to Hestia Control Panel!' '<b
 sort_config_file
 
 if [ "$interactive" = 'yes' ]; then
-    echo "[ ! ] IMPORTANT: System will reboot"
-    echo ""
-    echo -n " Press any key to continue!"
+    echo "[ ! ] IMPORTANT: The system will now reboot to complete the installation process."
+    echo -n "                 Press any key to continue!"
     read reboot
     reboot
 else
-    echo "[ ! ] IMPORTANT: You must logout or restart the server before continuing"
+    echo "[ ! ] IMPORTANT: You must restart the system before continuing!"
 fi
 # EOF

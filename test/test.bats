@@ -748,26 +748,37 @@ function check_ip_not_banned(){
 }
 
 @test "WEB: Add IDN domain ASCII idn-tést.eu" {
- # Expected to fail due to utf exists
- run v-add-web-domain $user $( idn -a idn-tést.eu) 198.18.0.125
- assert_failure $E_EXISTS
-
+   # Expected to fail due to utf exists
+   run v-add-web-domain $user $( idn -a idn-tést.eu) 198.18.0.125
+   assert_failure $E_EXISTS
 }
+
+
+@test "WEB: Generate Self signed certificate ASCII idn-tést.eu" {
+    run v-generate-ssl-cert "xn--idn-tst-fya.eu" "info@xn--idn-tst-fya.eu" US CA "Orange County" HestiaCP IT "mail.xn--idn-tst-fya.eu"
+    assert_success
+}
+
 
 @test "WEB: Delete IDN domain idn-tést.eu" {
- run v-delete-web-domain $user idn-tést.eu
- assert_success
- refute_output
+   run v-delete-web-domain $user idn-tést.eu
+   assert_success
+   refute_output
 }
  
-@test "WEB: Add IDN domain UTF bløst.com" {
- run v-add-web-domain $user bløst.com 198.18.0.125
- assert_success
- refute_output
+@test "WEB: Add IDN domain UTF bløst.рф" {
+   run v-add-web-domain $user bløst.рф 198.18.0.125
+   assert_success
+   refute_output
 }
 
-@test "WEB: Delete IDN domain bløst.com" {
- run v-delete-web-domain $user bløst.com
+@test "WEB: Generate Self signed certificate ASCII bløst.рф" {
+    run v-generate-ssl-cert "xn--blst-hra.xn--p1ai" "info@xn--blst-hra.xn--p1ai" US CA "Orange County" HestiaCP IT "mail.xn--blst-hra.xn--p1ai"
+    assert_success
+}
+
+@test "WEB: Delete IDN domain bløst.рф" {
+ run v-delete-web-domain $user bløst.рф
  assert_success
  refute_output
 }
@@ -966,7 +977,7 @@ function check_ip_not_banned(){
         skip "PHP ${test_phpver} not installed"
     fi
 
-    run v-change-web-domain-backend-tpl $user $multi_domain 'PHP-8_0' 'yes'
+    run v-change-web-domain-backend-tpl $user $multi_domain 'PHP-8_1' 'yes'
     assert_success
     refute_output
 
@@ -1584,6 +1595,37 @@ echo   "1.2.3.4" >> $HESTIA/data/firewall/excludes.conf
   run v-add-firewall-ban '1.2.3.4' 'HESTIA'
   rm $HESTIA/data/firewall/excludes.conf
   check_ip_not_banned '1.2.3.4' 'HESTIA'
+}
+
+@test "Test create ipset" {
+  run v-add-firewall-ipset "blacklist" "script:/usr/local/hestia/install/deb/firewall/ipset/blacklist.sh" v4 yes
+  assert_success
+  refute_output
+}
+
+@test "Create firewall with Ipset" {
+  run v-add-firewall-rule 'DROP' 'ipset:blacklist' '8083,22' 'TCP' 'Test'
+  assert_success
+  refute_output
+}
+
+@test "List firewall rules" {
+  run v-list-firewall csv
+  assert_success
+  assert_line --partial '11,DROP,TCP,8083,22,ipset:blacklist'
+  
+}
+
+@test "Delete firewall with Ipset" {
+  run v-delete-firewall-rule '11'
+  assert_success
+  refute_output
+}
+
+@test "Test delete ipset" {
+  run v-delete-firewall-ipset "blacklist" 
+  assert_success
+  refute_output
 }
 
 #----------------------------------------------------------#
