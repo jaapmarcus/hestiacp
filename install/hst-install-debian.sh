@@ -219,7 +219,7 @@ for arg; do
         --vsftpd)               args="${args}-v " ;;
         --proftpd)              args="${args}-j " ;;
         --named)                args="${args}-k " ;;
-        --mariadb)                args="${args}-m " ;;
+        --mariadb)              args="${args}-m " ;;
         --mysql)                args="${args}-M " ;;
         --postgresql)           args="${args}-g " ;;
         --exim)                 args="${args}-x " ;;
