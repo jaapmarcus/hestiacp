@@ -38,6 +38,7 @@ rc_v="1.5.2"
 multiphp_v=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1")
 fpm_v="8.0"
 mariadb_v="10.6"
+mysql_v="8.0"
 
 if [ "$release" -eq 9 ]; then
     software="nginx apache2 apache2-utils apache2-suexec-custom
@@ -54,7 +55,8 @@ if [ "$release" -eq 9 ]; then
         sudo bc ftp lsof rrdtool quota e2fslibs bsdutils e2fsprogs curl
         imagemagick fail2ban dnsutils bsdmainutils cron hestia=${HESTIA_INSTALL_VER} hestia-nginx
         hestia-php expect libmail-dkim-perl unrar-free vim-common acl sysstat
-        rsyslog openssh-server setpriv ipset libapache2-mod-ruid2 zstd lsb-release"
+        rsyslog openssh-server setpriv ipset libapache2-mod-ruid2 zstd lsb-release
+        mysql-client mysql-common mysql-server"
 elif [ "$release" -eq 10 ] || [ "$release" -eq 11 ]; then
     software="nginx apache2 apache2-utils apache2-suexec-custom
         apache2-suexec-pristine libapache2-mod-fcgid libapache2-mod-php$fpm_v
@@ -71,7 +73,7 @@ elif [ "$release" -eq 10 ] || [ "$release" -eq 11 ]; then
         dnsutils bsdmainutils cron hestia=${HESTIA_INSTALL_VER} hestia-nginx
         hestia-php expect libmail-dkim-perl unrar-free vim-common acl sysstat
         rsyslog openssh-server util-linux ipset libapache2-mpm-itk zstd
-        lsb-release"
+        lsb-release mysql-client mysql-common mysql-server"
 fi
 
 installer_dependencies="apt-transport-https curl dirmngr gnupg wget ca-certificates"
@@ -85,7 +87,8 @@ help() {
   -v, --vsftpd            Install Vsftpd        [yes|no]  default: yes
   -j, --proftpd           Install ProFTPD       [yes|no]  default: no
   -k, --named             Install Bind          [yes|no]  default: yes
-  -m, --mysql             Install MariaDB       [yes|no]  default: yes
+  -m, --mariadb           Install MariaDB       [yes|no]  default: yes
+  -M, --mysql             Install Mysql         [yes|no]  default: no
   -g, --postgresql        Install PostgreSQL    [yes|no]  default: no
   -x, --exim              Install Exim          [yes|no]  default: yes
   -z, --dovecot           Install Dovecot       [yes|no]  default: yes
@@ -252,7 +255,8 @@ while getopts "a:w:v:j:k:m:g:d:x:z:Z:c:t:i:b:r:o:q:l:y:s:e:p:D:fh" Option; do
         v) vsftpd=$OPTARG ;;            # Vsftpd
         j) proftpd=$OPTARG ;;           # Proftpd
         k) named=$OPTARG ;;             # Named
-        m) mysql=$OPTARG ;;             # MariaDB
+        m) mariadb=$OPTARG ;;           # MariaDB
+        M) mysql=$OPTARG ;;             # Mysql
         g) postgresql=$OPTARG ;;        # PostgreSQL
         x) exim=$OPTARG ;;              # Exim
         z) dovecot=$OPTARG ;;           # Dovecot
@@ -284,7 +288,8 @@ set_default_value 'multiphp' 'no'
 set_default_value 'vsftpd' 'yes'
 set_default_value 'proftpd' 'no'
 set_default_value 'named' 'yes'
-set_default_value 'mysql' 'yes'
+set_default_value 'mariadb' 'yes'
+set_default_value 'mysql' 'no'
 set_default_value 'postgresql' 'no'
 set_default_value 'exim' 'yes'
 set_default_value 'dovecot' 'yes'
@@ -325,6 +330,10 @@ fi
 if [ "$apache" = "no" ]; then
     phpfpm='yes'
 fi
+if [ "$mysql" = "yes"] && "$mariadb" ; then
+    mariadb='yes'
+fi
+
 
 # Checking root permissions
 if [ "x$(id -u)" != 'x0' ]; then
@@ -562,8 +571,11 @@ fi
 
 echo 
 # Database stack
-if [ "$mysql" = 'yes' ]; then
+if [ "$mariadb" = 'yes' ]; then
     echo '   - MariaDB Database Server'
+fi
+if [ "$mysql" = 'yes' ]; then
+    echo '   - Mysql Database Server'
 fi
 if [ "$postgresql" = 'yes' ]; then
     echo '   - PostgreSQL Database Server'
@@ -716,7 +728,7 @@ if [ "$apache" = 'yes' ]; then
 fi
 
 # Installing MariaDB repo
-if [ "$mysql" = 'yes' ]; then
+if [ "$mariadb" = 'yes' ]; then
     echo "[ * ] MariaDB"
     echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/mariadb-keyring.gpg] https://mirror.mva-n.net/mariadb/repo/$mariadb_v/$VERSION $codename main" > $apt/mariadb.list
     curl -s https://mariadb.org/mariadb_release_signing_key.asc | gpg --dearmor | tee /usr/share/keyrings/mariadb-keyring.gpg >/dev/null 2>&1
@@ -889,11 +901,15 @@ if [ "$sieve" = 'no' ]; then
   software=$(echo "$software" | sed -e "s/dovecot-sieve//")
   software=$(echo "$software" | sed -e "s/dovecot-managesieved//")
 fi
-if [ "$mysql" = 'no' ]; then
+if [ "$mariadb" = 'no' ]; then
     software=$(echo "$software" | sed -e "s/mariadb-server//")
     software=$(echo "$software" | sed -e "s/mariadb-client//")
     software=$(echo "$software" | sed -e "s/mariadb-common//")
-    software=$(echo "$software" | sed -e "s/php$fpm_v-mysql//")
+fi
+if [ "$mariadb" = 'no' ]; then
+    software=$(echo "$software" | sed -e "s/mysql-server//")
+    software=$(echo "$software" | sed -e "s/mysql-client//")
+    software=$(echo "$software" | sed -e "s/mysql-common//")
 fi
 if [ "$postgresql" = 'no' ]; then
     software=$(echo "$software" | sed -e "s/postgresql-contrib//")
@@ -1498,7 +1514,7 @@ fi
 #                  Configure MariaDB                       #
 #----------------------------------------------------------#
 
-if [ "$mysql" = 'yes' ]; then
+if [ "$mariadb" = 'yes' ]; then
     echo "[ * ] Configuring MariaDB database server..."
     mycnf="my-small.cnf"
     if [ $memory -gt 1200000 ]; then
@@ -1512,7 +1528,7 @@ if [ "$mysql" = 'yes' ]; then
     # Remove symbolic link
     rm -f /etc/mysql/my.cnf
     # Configuring MariaDB
-    cp -f $HESTIA_INSTALL_DIR/mysql/$mycnf /etc/mysql/my.cnf
+    cp -f $HESTIA_INSTALL_DIR/mariadb/$mycnf /etc/mysql/my.cnf
 
     update-rc.d mysql defaults > /dev/null 2>&1
     systemctl start mysql >> $LOG
@@ -1532,12 +1548,49 @@ if [ "$mysql" = 'yes' ]; then
     mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';"
 fi
 
+#----------------------------------------------------------#
+#                  Configure Mysql                         #
+#----------------------------------------------------------#
+
+if [ "$mysql" = 'yes' ]; then
+    echo "[ * ] Configuring MariaDB database server..."
+    #mycnf="my-small.cnf"
+    #if [ $memory -gt 1200000 ]; then
+    #    mycnf="my-medium.cnf"
+    #fi
+    #if [ $memory -gt 3900000 ]; then
+    #    mycnf="my-large.cnf"
+    #fi
+
+    mysql_install_db >> $LOG
+    # Remove symbolic link
+    #rm -f /etc/mysql/my.cnf
+    # Configuring MariaDB
+    #cp -f $HESTIA_INSTALL_DIR/mariadb/$mycnf /etc/mysql/my.cnf
+
+    update-rc.d mysql defaults > /dev/null 2>&1
+    systemctl start mysql >> $LOG
+    check_result $? "Mysql start failed"
+
+    # Securing MariaDB installation
+    mpass=$(gen_pass)
+    mysqladmin -u root password $mpass >> $LOG
+    echo -e "[client]\npassword='$mpass'\n" > /root/.my.cnf
+    chmod 600 /root/.my.cnf
+
+    # Clear MariaDB Test Users and Databases
+    mysql -e "DELETE FROM mysql.user WHERE User=''"
+    mysql -e "DROP DATABASE test" > /dev/null 2>&1
+    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
+    mysql -e "DELETE FROM mysql.user WHERE user='';"
+    mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';"
+fi
 
 #----------------------------------------------------------#
 #                    Configure phpMyAdmin                  #
 #----------------------------------------------------------#
 
-if [ "$mysql" = 'yes' ]; then
+if [ "$mysql" = 'yes' || "$mariadb" = "yes" ]; then
     # Display upgrade information
     echo "[ * ] Installing phpMyAdmin version v$pma_v..."
 
