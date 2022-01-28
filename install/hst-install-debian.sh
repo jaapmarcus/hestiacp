@@ -219,7 +219,8 @@ for arg; do
         --vsftpd)               args="${args}-v " ;;
         --proftpd)              args="${args}-j " ;;
         --named)                args="${args}-k " ;;
-        --mysql)                args="${args}-m " ;;
+        --mariadb)                args="${args}-m " ;;
+        --mysql)                args="${args}-M " ;;
         --postgresql)           args="${args}-g " ;;
         --exim)                 args="${args}-x " ;;
         --dovecot)              args="${args}-z " ;;
@@ -247,7 +248,7 @@ done
 eval set -- "$args"
 
 # Parsing arguments
-while getopts "a:w:v:j:k:m:g:d:x:z:Z:c:t:i:b:r:o:q:l:y:s:e:p:D:fh" Option; do
+while getopts "a:w:v:j:k:m:M:g:d:x:z:Z:c:t:i:b:r:o:q:l:y:s:e:p:D:fh" Option; do
     case $Option in
         a) apache=$OPTARG ;;            # Apache
         w) phpfpm=$OPTARG ;;            # PHP-FPM
