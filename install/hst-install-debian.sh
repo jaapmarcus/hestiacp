@@ -735,6 +735,37 @@ if [ "$mariadb" = 'yes' ]; then
     curl -s https://mariadb.org/mariadb_release_signing_key.asc | gpg --dearmor | tee /usr/share/keyrings/mariadb-keyring.gpg >/dev/null 2>&1
 fi
 
+if [ "$mysql" = 'yes' ]; then
+  echo "[ * ] Mysql 8"
+  echo "### THIS FILE IS AUTOMATICALLY CONFIGURED ###" > /etc/apt/sources.list.d/mysql.list
+  echo "# You may comment out entries below, but any other modifications may be lost." >> /etc/apt/sources.list.d/mysql.list
+  echo "# Use command 'dpkg-reconfigure mysql-apt-config' as root for modifications." >> /etc/apt/sources.list.d/mysql.list
+  echo "deb http://repo.mysql.com/apt/debian/ $codename mysql-apt-config" >> /etc/apt/sources.list.d/mysql.list
+  echo "deb http://repo.mysql.com/apt/debian/ $codename mysql-8.0" >> /etc/apt/sources.list.d/mysql.list
+  echo "deb http://repo.mysql.com/apt/debian/ $codename mysql-tools" >> /etc/apt/sources.list.d/mysql.list
+  echo "#deb http://repo.mysql.com/apt/debian/ $codename mysql-tools-preview" >> /etc/apt/sources.list.d/mysql.list
+  echo "deb-src http://repo.mysql.com/apt/debian/ $codename mysql-8.0" >> /etc/apt/sources.list.d/mysql.list
+  
+  # apt-key adv --keyserver pgp.mit.edu --recv-keys 3A79BD29
+  key="467B942D3A79BD29"
+  readonly key
+  GNUPGHOME="$(mktemp -d)"
+  export GNUPGHOME
+  for keyserver in $(shuf -e ha.pool.sks-keyservers.net hkp://p80.pool.sks-keyservers.net:80 keyserver.ubuntu.com hkp://keyserver.ubuntu.com:80)
+  do
+      gpg --keyserver "${keyserver}" --recv-keys "${key}" 2>&1 && break
+  done
+  gpg --export "${key}" > /usr/share/keyrings/mariadb-keyring.gpg
+  gpgconf --kill all
+  rm -rf "${GNUPGHOME}"
+  unset GNUPGHOME
+  
+  mpass=$(gen_pass)
+  debconf-set-selections <<< "mysql-community-server mysql-community-server/root-pass password $mpass"
+  debconf-set-selections <<< "mysql-community-server mysql-community-server/re-root-pass password $mpass"
+  debconf-set-selections <<< "mysql-community-server mysql-server/default-auth-override select Use Legacy Authentication Method (Retain MySQL 5.x Compatibility)"
+fi
+
 # Installing HestiaCP repo
 echo "[ * ] Hestia Control Panel"
 echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/hestia-keyring.gpg] https://$RHOST/ $codename main" > $apt/hestia.list
@@ -1555,27 +1586,25 @@ fi
 
 if [ "$mysql" = 'yes' ]; then
     echo "[ * ] Configuring MariaDB database server..."
-    #mycnf="my-small.cnf"
-    #if [ $memory -gt 1200000 ]; then
-    #    mycnf="my-medium.cnf"
-    #fi
-    #if [ $memory -gt 3900000 ]; then
-    #    mycnf="my-large.cnf"
-    #fi
+    mycnf="my-small.cnf"
+    if [ $memory -gt 1200000 ]; then
+        mycnf="my-medium.cnf"
+    fi
+    if [ $memory -gt 3900000 ]; then
+        mycnf="my-large.cnf"
+    fi
 
     mysql_install_db >> $LOG
     # Remove symbolic link
-    #rm -f /etc/mysql/my.cnf
+    rm -f /etc/mysql/my.cnf
     # Configuring MariaDB
-    #cp -f $HESTIA_INSTALL_DIR/mariadb/$mycnf /etc/mysql/my.cnf
+    cp -f $HESTIA_INSTALL_DIR/mysql/$mycnf /etc/mysql/my.cnf
 
     update-rc.d mysql defaults > /dev/null 2>&1
     systemctl start mysql >> $LOG
     check_result $? "Mysql start failed"
 
-    # Securing MariaDB installation
-    mpass=$(gen_pass)
-    mysqladmin -u root password $mpass >> $LOG
+    # Securing Mysql installation
     echo -e "[client]\npassword='$mpass'\n" > /root/.my.cnf
     chmod 600 /root/.my.cnf
 
