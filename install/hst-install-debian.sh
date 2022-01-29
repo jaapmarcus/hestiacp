@@ -936,7 +936,7 @@ if [ "$mariadb" = 'no' ]; then
     software=$(echo "$software" | sed -e "s/mariadb-client//")
     software=$(echo "$software" | sed -e "s/mariadb-common//")
 fi
-if [ "$mariadb" = 'no' ]; then
+if [ "$mysql" = 'no' ]; then
     software=$(echo "$software" | sed -e "s/mysql-server//")
     software=$(echo "$software" | sed -e "s/mysql-client//")
     software=$(echo "$software" | sed -e "s/mysql-common//")
@@ -1583,7 +1583,7 @@ fi
 #----------------------------------------------------------#
 
 if [ "$mysql" = 'yes' ]; then
-    echo "[ * ] Configuring MariaDB database server..."
+    echo "[ * ] Configuring Mysql database server..."
     mycnf="my-small.cnf"
     if [ $memory -gt 1200000 ]; then
         mycnf="my-medium.cnf"
