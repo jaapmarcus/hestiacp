@@ -746,8 +746,18 @@ if [ "$mysql" = 'yes' ]; then
   echo "#deb http://repo.mysql.com/apt/debian/ $codename mysql-tools-preview" >> /etc/apt/sources.list.d/mysql.list
   echo "deb-src http://repo.mysql.com/apt/debian/ $codename mysql-8.0" >> /etc/apt/sources.list.d/mysql.list
   
-  # apt-key adv --keyserver pgp.mit.edu --recv-keys 3A79BD29
-  gpg --no-default-keyring --keyring /usr/share/keyrings/mysql-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 467B942D3A79BD29 >/dev/null 2>&1
+  key="467B942D3A79BD29"
+  readonly key
+  GNUPGHOME="$(mktemp -d)"
+  export GNUPGHOME
+  for keyserver in $(shuf -e ha.pool.sks-keyservers.net hkp://p80.pool.sks-keyservers.net:80 keyserver.ubuntu.com hkp://keyserver.ubuntu.com:80)
+  do
+      gpg --keyserver "${keyserver}" --recv-keys "${key}" 2>&1 && break
+  done
+  gpg --export "${key}" > /etc/apt/trusted.gpg.d/mysql.gpg
+  gpgconf --kill all
+  rm -rf "${GNUPGHOME}"
+  unset GNUPGHOME
   mpass=$(gen_pass)
   debconf-set-selections <<< "mysql-community-server mysql-community-server/root-pass password $mpass"
   debconf-set-selections <<< "mysql-community-server mysql-community-server/re-root-pass password $mpass"
