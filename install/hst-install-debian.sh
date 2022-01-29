@@ -746,15 +746,15 @@ if [ "$mysql" = 'yes' ]; then
   echo "#deb http://repo.mysql.com/apt/debian/ $codename mysql-tools-preview" >> /etc/apt/sources.list.d/mysql.list
   echo "deb-src http://repo.mysql.com/apt/debian/ $codename mysql-8.0" >> /etc/apt/sources.list.d/mysql.list
   
-  key="467B942D3A79BD29"
-  readonly key
+  mysql_key="467B942D3A79BD29"
+  readonly mysql_key
   GNUPGHOME="$(mktemp -d)"
   export GNUPGHOME
   for keyserver in $(shuf -e ha.pool.sks-keyservers.net hkp://p80.pool.sks-keyservers.net:80 keyserver.ubuntu.com hkp://keyserver.ubuntu.com:80)
   do
-      gpg --keyserver "${keyserver}" --recv-keys "${key}" 2>&1 && break
+      gpg --keyserver "${keyserver}" --recv-keys "${mysql_key}" 2>&1 && break
   done
-  gpg --export "${key}" > /etc/apt/trusted.gpg.d/mysql.gpg
+  gpg --export "${mysql_key}" > /etc/apt/trusted.gpg.d/mysql.gpg
   gpgconf --kill all
   rm -rf "${GNUPGHOME}"
   unset GNUPGHOME
@@ -979,15 +979,15 @@ chmod a+x /usr/sbin/policy-rc.d
 echo "The installer is now downloading and installing all required packages."
 echo -ne "NOTE: This process may take 10 to 15 minutes to complete, please wait... "
 echo
-apt-get -y install $software > /dev/null 2>&1 &
-BACK_PID=$!
+apt-get -y install $software 
+#BACK_PID=$!
 
 # Check if package installation is done, print a spinner
-spin_i=1
-while kill -0 $BACK_PID > /dev/null 2>&1 ; do
-    printf "\b${spinner:spin_i++%${#spinner}:1}"
-    sleep 0.5
-done
+#spin_i=1
+#while kill -0 $BACK_PID > /dev/null 2>&1 ; do
+#    printf "\b${spinner:spin_i++%${#spinner}:1}"
+#    sleep 0.5
+#done
 
 # Do a blank echo to get the \n back
 echo
