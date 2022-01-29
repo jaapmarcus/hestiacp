@@ -1592,7 +1592,7 @@ if [ "$mysql" = 'yes' ]; then
         mycnf="my-large.cnf"
     fi
 
-    mysql_install_db >> $LOG
+    mysqld --initialize > /dev/null 2>&1
     # Remove symbolic link
     rm -f /etc/mysql/my.cnf
     # Configuring MariaDB
