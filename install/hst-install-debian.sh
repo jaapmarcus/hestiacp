@@ -1595,7 +1595,7 @@ if [ "$mysql" = 'yes' ]; then
     mysqld --initialize > /dev/null 2>&1
     # Remove symbolic link
     rm -f /etc/mysql/my.cnf
-    # Configuring MariaDB
+    # Configuring mysql
     cp -f $HESTIA_INSTALL_DIR/mysql/$mycnf /etc/mysql/my.cnf
 
     update-rc.d mysql defaults > /dev/null 2>&1
