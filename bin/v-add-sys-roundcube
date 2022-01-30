@@ -135,14 +135,16 @@ if [ "$UPDATE" == "no" ]; then
     chown www-data:www-data $RC_LOG
     chmod 751 $RC_LOG
     
-    if [ ! -z "$(echo "$DB_SYSTEM" | grep -w 'mysql')" ]; then
+    if [ -n "$(echo "$DB_SYSTEM" | grep -w 'mysql')" ]; then
         mysql -e "DROP DATABASE IF EXISTS roundcube"
         mysql -e "DROP USER IF EXISTS roundcube@localhost"
         mysql -e "CREATE DATABASE roundcube"
         # Mysql available on system
         r=$(generate_password)
-        mysql -e "GRANT ALL ON roundcube.*
-         TO roundcube@localhost IDENTIFIED BY '$r'"
+        mysql -e "CREATE USER roundcube@localhost
+        IDENTIFIED BY '$r'"
+        mysql -e "GRANT ALL ON roundcube.* TO roundcube@localhost"
+        
         sed -i "s/%password%/$r/g" $RC_CONFIG_DIR/config.inc.php
         mysql roundcube < /var/lib/roundcube/SQL/mysql.initial.sql
     fi
