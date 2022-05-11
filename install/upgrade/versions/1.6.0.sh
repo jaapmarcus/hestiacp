@@ -74,7 +74,7 @@ if [[ ! -d $HESTIA/data/api ]]; then
 fi
 
 # Update Cloudflare address
-if [ -f /etc/nginx/nginx.conf && -f /etc/nginx/cloudflare.conf ]; then
+if [ -f /etc/nginx/nginx.conf && -f /etc/nginx/conf.d/cloudflare.conf ]; then
     sed -i '/set_real_ip_from/d' /etc/nginx/nginx.conf 
     sed -i 'real_ip_header CF-Connecting-IP;/d' /etc/nginx/nginx.conf 
     sed -i 's/# Cloudflare https:\/\/www.cloudflare.com\/ips/# Cloudflare https:\/\/www.cloudflare.com\/ips\n    include \/etc\/nginx\/conf.d/cloudflare.conf/' /etc/nginx/nginx.conf 
