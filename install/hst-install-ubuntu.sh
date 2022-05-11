@@ -1376,7 +1376,7 @@ if [ -n "$resolver" ]; then
 fi
 
 # https://github.com/ergin/nginx-cloudflare-real-ip/
-CLOUDFLARE_FILE_PATH='/etc/nginx/conf.d/cloudflare.conf'
+CLOUDFLARE_FILE_PATH='/etc/nginx/conf.d/cloudflare.inc'
 echo "#Cloudflare" > $CLOUDFLARE_FILE_PATH;
 echo "" >> $CLOUDFLARE_FILE_PATH;
 
