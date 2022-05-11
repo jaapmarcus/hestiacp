@@ -74,12 +74,9 @@ if [[ ! -d $HESTIA/data/api ]]; then
 fi
 
 # Update Cloudflare address
-if [ -f /etc/nginx/nginx.conf ] && [ "$(grep 'set_real_ip_from 2405:8100::/32' /etc/nginx/nginx.conf)" = "" ];then
-    echo "[ * ] Updating nginx configuration with changes to Cloudflare IP addresses"
-    sed -i "/#set_real_ip_from  2405:b500::\/32;/d" /etc/nginx/nginx.conf
-    sed -i "/#set_real_ip_from  2606:4700::\/32;/d" /etc/nginx/nginx.conf
-    sed -i "/#set_real_ip_from  2803:f800::\/32;/d" /etc/nginx/nginx.conf
-    sed -i "/#set_real_ip_from  2c0f:f248::\/32;/d" /etc/nginx/nginx.conf
-    sed -i "/#set_real_ip_from  2a06:98c0::\/29;/d" /etc/nginx/nginx.conf
-    sed -i "s/#set_real_ip_from  2400:cb00::\/32;/# set_real_ip_from 2400:cb00::\/32;\n    # set_real_ip_from 2606:4700::\/32;\n    # set_real_ip_from 2803:f800::\/32;\n    # set_real_ip_from 2405:b500::\/32;\n    # set_real_ip_from 2405:8100::\/32;\n    # set_real_ip_from 2a06:98c0::\/29;\n    # set_real_ip_from 2c0f:f248::\/32;/g" /etc/nginx/nginx.conf
+if [ -f /etc/nginx/nginx.conf && -f /etc/nginx/cloudflare.conf ]; then
+    sed -i '/set_real_ip_from/d' /etc/nginx/nginx.conf 
+    sed -i 'real_ip_header CF-Connecting-IP;/d' /etc/nginx/nginx.conf 
+    sed -i 's/# Cloudflare https:\/\/www.cloudflare.com\/ips/# Cloudflare https:\/\/www.cloudflare.com\/ips\n    include \/etc\/nginx\/conf.d/cloudflare.conf/' /etc/nginx/nginx.conf 
+    # At a later stage a function  will run and will load all the new rules
 fi
