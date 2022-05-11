@@ -569,6 +569,7 @@ upgrade_b2_tool(){
 }
 
 upgrade_cloudflare_ip() {
+    echo "[ * ] Update Cloudflare IP"
     # https://github.com/ergin/nginx-cloudflare-real-ip/
     CLOUDFLARE_FILE_PATH='/etc/nginx/cloudflare.conf'
     echo "#Cloudflare" > $CLOUDFLARE_FILE_PATH;
