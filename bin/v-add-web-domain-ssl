@@ -26,9 +26,6 @@ restart="$5"
 if [[ "$domain" =~ [[:upper:]] ]]; then
     domain=$(echo "$domain" |tr '[:upper:]' '[:lower:]')
 fi
-if [[ "$domain" =~ ^www\..* ]]; then
-    domain=$(echo "$domain" |sed -e "s/^www.//")
-fi
 if [[ "$domain" =~ .*\.$ ]]; then
     domain=$(echo "$domain" |sed -e "s/\.$//")
 fi
