@@ -60,6 +60,10 @@ if [ "$aliases" != "none" ]; then
     is_package_full 'WEB_ALIASES' 
 fi
 
+if [[ "$domain" =~ ^www\..* ]]; then
+    domain=$(echo "$domain" |sed -e "s/^www.//")
+fi
+
 if [ "$($BIN/v-list-web-domain $user $domain_utf plain |cut -f 1) " != "$domain" ]; then
     is_domain_new 'web' "$domain_utf,$aliases"
 fi
