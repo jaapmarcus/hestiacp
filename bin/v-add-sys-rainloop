@@ -151,10 +151,13 @@ else
       
       mv $RL_INSTALL_DIR/_include.php $RL_INSTALL_DIR/include.php
       sed -i "s|//define('APP_DATA_FOLDER_PATH', '/var/external-snappymail-data-folder/');|define('APP_DATA_FOLDER_PATH', '/etc/rainloop/');|g" $RL_INSTALL_DIR/include.php
-      mv /etc/rainloop/data ../etc/rainloop/
+      mv /etc/rainloop/data/* /etc/rainloop/
       rm -fr data
-      rm -fr $RL_CONFIG_DIR/data/_data_/_default_/plugins/*
-      $RL_INSTALL_DIR/rainloop/
+      rm -fr $RL_CONFIG_DIR/_data_/_default_/plugins/*
+      rm -fr $RL_INSTALL_DIR/rainloop/
+      exec_as_user php -f $HESTIA_INSTALL_DIR/rainloop/upgrade_rainloop.php
+      rm -f /etc/rainloop/_data_/_default_/configs/plugin-add-x-originating-ip-header.ini 
+      rm -f /etc/rainloop/_data_/_default_/configs/plugin-hestia-change-password.ini
    fi
 fi
 
