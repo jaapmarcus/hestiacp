@@ -22,12 +22,12 @@ MODE=$1
 UPDATE="no"
 # Version and Download paths
 # Version to be moved to upgrade script
-RL_FILE="rainloop-community-latest.zip"
+RL_FILE="snappymail-$rl_v.zip"
 # For removal of folder
-RL_EXTRACT_MAIN="rainloop"
+RL_EXTRACT_MAIN="snappymail-$rl_v"
 
 # Downloading full version
-RL_URL="https://www.rainloop.net/repository/webmail/rainloop-community-latest.zip"
+RL_URL="https://github.com/the-djmaze/snappymail/releases/download/v$rl_v/snappymail-$rl_v.zip"
 
 # Folder paths
 RL_INSTALL_DIR="/var/lib/rainloop"
@@ -37,6 +37,13 @@ RL_LOG="/var/log/rainloop"
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
+
+function exec_as_user(){
+   local user_groups=$(id -G "www-data")
+    user_groups=${user_groups//\ /,}
+   
+    setpriv --groups "$user_groups" --reuid "www-data" --regid "www-data" -- "${@}"
+}
 
 # Checking root permissions
 if [ "x$(id -u)" != 'x0' ]; then
@@ -80,60 +87,40 @@ if [ "$UPDATE" == "no" ]; then
     mkdir $RL_CONFIG_DIR
     
     cd "$RL_INSTALL_DIR"
+    
     [ ! -f "${RC_INSTALL_DIR}/${RC_FILE}" ] && wget "$RL_URL" --retry-connrefused --quiet -O "${RL_INSTALL_DIR}/${RL_FILE}"
     
-    key=$(openssl rand -hex 4);
+    unzip -q ${RL_INSTALL_DIR}/${RL_FILE}
     
-    admin_account="admin_$key"
+    key=$(openssl rand -hex 4);
     admin_password=$(generate_password)
     r=$(generate_password)
-
     echo "Username: admin_$key" > ~/.rainloop
     echo "Password: $admin_password" >> ~/.rainloop
     echo "Secret key: admin_$key" >> ~/.rainloop
     
-    unzip -q ${RL_INSTALL_DIR}/${RL_FILE}
-    
-    mv ./data $RL_CONFIG_DIR/
-    ln -s $RL_CONFIG_DIR/data/ ./data
-
-    SALT=$(openssl rand -base64 64)
-    cp ./data/VERSION ./data/INSTALLED
-    echo "<?php //$SALT" >  ./data/SALT.php
-    echo "Forbidden" >  ./data/index.php
-    echo "Forbidden" >  ./data/index.html
-
     # Create database
+    mysql -e "DROP DATABASE rainloop"
     mysql -e "CREATE DATABASE rainloop"
     # Mysql available on system
     r=$(generate_password)
     mysql -e "GRANT ALL ON rainloop.*
      TO rainloop@localhost IDENTIFIED BY '$r'"
-
-    mkdir -p $RL_CONFIG_DIR/data/_data_/_default_/configs
-    php -f $HESTIA_INSTALL_DIR/rainloop/change_password.php "admin_$key" "$admin_password" "$r"
-    mkdir -p $RL_CONFIG_DIR/data/_data_/_default_/domains
-    cp -f $HESTIA_INSTALL_DIR/rainloop/default.ini $RL_CONFIG_DIR/data/_data_/_default_/domains
-    mkdir -p $RL_CONFIG_DIR/data/_data_/_default_/plugins
-    cp -f -r $HESTIA_INSTALL_DIR/rainloop/plugins/hestia-change-password/ $RL_CONFIG_DIR/data/_data_/_default_/plugins
-    mkdir -p $RL_CONFIG_DIR/data/_data_/_default_/plugins/add-x-originating-ip-header
-    # Download add-x-originating-ip-header from rainloop github
-    wget --quiet -O $RL_CONFIG_DIR/data/_data_/_default_/plugins/add-x-originating-ip-header/index.php https://raw.githubusercontent.com/RainLoop/rainloop-webmail/master/plugins/add-x-originating-ip-header/index.php
-    wget --quiet -O $RL_CONFIG_DIR/data/_data_/_default_/plugins/add-x-originating-ip-header/VERSION https://raw.githubusercontent.com/RainLoop/rainloop-webmail/master/plugins/add-x-originating-ip-header/VERSION
-    wget --quiet -O $RL_CONFIG_DIR/data/_data_/_default_/plugins/add-x-originating-ip-header/README https://raw.githubusercontent.com/RainLoop/rainloop-webmail/master/plugins/add-x-originating-ip-header/README
-    wget --quiet -O $RL_CONFIG_DIR/data/_data_/_default_/plugins/add-x-originating-ip-header/LICENSE https://raw.githubusercontent.com/RainLoop/rainloop-webmail/master/plugins/add-x-originating-ip-header/LICENSE
     
-    cp -f $HESTIA_INSTALL_DIR/rainloop/plugins/plugin-add-x-originating-ip-header.ini $RL_CONFIG_DIR/data/_data_/_default_/configs/plugin-add-x-originating-ip-header.ini
-    cp -f $HESTIA_INSTALL_DIR/rainloop/plugins/plugin-hestia-change-password.ini $RL_CONFIG_DIR/data/_data_/_default_/configs/plugin-hestia-change-password.ini
+    mv $RL_INSTALL_DIR/_include.php $RL_INSTALL_DIR/include.php
+   
+    sed -i "s|//define('APP_DATA_FOLDER_PATH', '/var/external-snappymail-data-folder/');|define('APP_DATA_FOLDER_PATH', '/etc/rainloop/');|g" $RL_INSTALL_DIR/include.php
     
-    sed -i "s/%hostname%/$(hostname)/g" $RL_CONFIG_DIR/data/_data_/_default_/configs/plugin-hestia-change-password.ini
-    sed -i "s/%port%/$BACKEND_PORT/g" $RL_CONFIG_DIR/data/_data_/_default_/configs/plugin-hestia-change-password.ini
-    
-    
-    chown -R  www-data:www-data ./data
+    rm -fr /var/lig/rainloop/data
     chown -R  www-data:www-data $RL_CONFIG_DIR/
-    
+    chown -R  www-data:www-data /etc/rainloop/
+     
+    # setup default values
+    exec_as_user php -f /var/lib/rainloop/index.php  >/dev/null 2>&1
+    cp -f $HESTIA_INSTALL_DIR/rainloop/default.ini $RL_CONFIG_DIR/_data_/_default_/domains
+    exec_as_user php -f $HESTIA_INSTALL_DIR/rainloop/change_password.php "admin_$key" "$admin_password" "$r"
     rm  ${RL_INSTALL_DIR}/${RL_FILE}  
+    
     # Add robots.txt
     echo "User-agent: *" > $RL_INSTALL_DIR/robots.txt
     echo "Disallow: /" >> $RL_INSTALL_DIR/robots.txt
@@ -155,7 +142,7 @@ else
    [ ! -f "${RC_INSTALL_DIR}/${RC_FILE}" ] && wget "$RL_URL" --quiet -O "${RL_INSTALL_DIR}/${RL_FILE}"
    version=$(cat $RL_INSTALL_DIR/data/VERSION);
    
-   unzip -q -j rainloop-community-latest.zip "data/VERSION" -d $RL_INSTALL_DIR/ 
+   unzip -q -j $RL_FILE "data/VERSION" -d $RL_INSTALL_DIR/ 
    version_source=$(cat $RL_INSTALL_DIR/VERSION);
    
    # Check version inside .zip file in case hestia didn't update yet

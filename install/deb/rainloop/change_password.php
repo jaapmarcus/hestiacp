@@ -1,10 +1,14 @@
 <?php
 // Example usage 
 // change_password.php "admin_account admin_password mysql_password"
-$_ENV['RAINLOOP_INCLUDE_AS_API'] = true;
+$_ENV['SNAPPYMAIL_INCLUDE_AS_API'] = true;
 include '/var/lib/rainloop/index.php';
 
+use \RainLoop\Config\Config;
+use \RainLoop\Config\Config\Application;
+
 $oConfig = \RainLoop\Api::Config();
+    
 // Change default login data / key
 $oConfig->Set('security', 'admin_login', $argv[1]);
 $oConfig->Set('security', 'admin_panel_key', $argv[1]);
@@ -17,7 +21,7 @@ $oConfig->Set('contacts', 'pdo_dsn', 'mysql:host=127.0.0.1;port=3306;dbname=rain
 $oConfig->Set('contacts', 'pdo_user', 'rainloop');
 $oConfig->Set('contacts', 'pdo_password', $argv[3]);
 // Plugins
-$oConfig->Set('plugins', 'enable', 'On');
-$oConfig->Set('plugins', 'enabled_list', 'add-x-originating-ip-header,hestia-change-password');
+#$oConfig->Set('plugins', 'enable', 'On');
+#$oConfig->Set('plugins', 'enabled_list', 'add-x-originating-ip-header,hestia-change-password');
 $oConfig->Save();
 ?>
