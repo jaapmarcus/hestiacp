@@ -48,8 +48,8 @@ download_file() {
     fi
 
     if [ ! -f "$ARCHIVE_DIR/$filename" ]; then
-        [ "$HESTIA_DEBUG" ] && >&2 echo DEBUG: wget $url -q $dstopt --show-progress --progress=bar:force --limit-rate=3m
-        wget $url -q $dstopt --show-progress --progress=bar:force --limit-rate=3m
+        [ "$HESTIA_DEBUG" ] && >&2 echo DEBUG: wget --inet4-only $url -q $dstopt --show-progress --progress=bar:force --limit-rate=3m
+        wget --inet4-only $url -q $dstopt --show-progress --progress=bar:force --limit-rate=3m
         if [ $? -ne 0 ]; then
             >&2 echo "[!] Archive $ARCHIVE_DIR/$filename is corrupted and exit script";
             rm -f $ARCHIVE_DIR/$filename
@@ -207,9 +207,9 @@ if [ -f "$SRC_DIR/src/deb/hestia/control" ] && [ "$use_src_folder" == 'true' ]; 
     NGINX_V=$(cat $SRC_DIR/src/deb/nginx/control |grep "Version:" |cut -d' ' -f2)
     PHP_V=$(cat $SRC_DIR/src/deb/php/control |grep "Version:" |cut -d' ' -f2)
 else
-    BUILD_VER=$(curl -s https://raw.githubusercontent.com/$REPO/$branch/src/deb/hestia/control |grep "Version:" |cut -d' ' -f2)
-    NGINX_V=$(curl -s https://raw.githubusercontent.com/$REPO/$branch/src/deb/nginx/control |grep "Version:" |cut -d' ' -f2)
-    PHP_V=$(curl -s https://raw.githubusercontent.com/$REPO/$branch/src/deb/php/control |grep "Version:" |cut -d' ' -f2)
+    BUILD_VER=$(curl --ipv4 -s https://raw.githubusercontent.com/$REPO/$branch/src/deb/hestia/control |grep "Version:" |cut -d' ' -f2)
+    NGINX_V=$(curl --ipv4 -s https://raw.githubusercontent.com/$REPO/$branch/src/deb/nginx/control |grep "Version:" |cut -d' ' -f2)
+    PHP_V=$(curl --ipv4 -s https://raw.githubusercontent.com/$REPO/$branch/src/deb/php/control |grep "Version:" |cut -d' ' -f2)
 fi
 
 if [ -z "$BUILD_VER" ]; then
