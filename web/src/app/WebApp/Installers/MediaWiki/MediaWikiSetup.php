@@ -11,7 +11,7 @@ class MediaWikiSetup extends BaseSetup
         'name' => 'MediaWiki',
         'group' => 'cms',
         'enabled' => true,
-        'version' => '1.36.2',
+        'version' => '1.38.4',
         'thumbnail' => 'MediaWiki-2020-logo.svg' //Max size is 300px by 300px
     ];
 
@@ -27,13 +27,22 @@ class MediaWikiSetup extends BaseSetup
             ],
         'database' => true,
         'resources' => [
-            'archive'  => [ 'src' => 'https://releases.wikimedia.org/mediawiki/1.36/mediawiki-1.36.2.zip' ],
+            'archive'  => [ 'src' => 'https://releases.wikimedia.org/mediawiki/1.38/mediawiki-1.38.4.zip' ],
         ],
+        'server' => [
+            'nginx' => [
+                'template' => 'default'
+            ],
+            'php' => [ 
+                'supported' => [ '7.3','7.4' ],
+            ]
+        ], 
     ];
 
     public function install(array $options = null)
     {
         parent::install($options);
+        parent::setup($options);
 
         //check if ssl is enabled
         $this->appcontext->run('v-list-web-domain', [$this->appcontext->user(), $this->domain, 'json'], $status);
@@ -44,13 +53,13 @@ class MediaWikiSetup extends BaseSetup
 
         $sslEnabled = ($status->json[$this->domain]['SSL'] == 'no' ? 0 : 1);
 
-        $webDomain = ($sslEnabled ? "https://" : "http://") . $this->domain . "/";
+        $webDomain = ($sslEnabled ? "https://" : "http://") . $this->domain;
 
         $this->appcontext->runUser('v-copy-fs-directory', [
-            $this->getDocRoot($this->extractsubdir . "/mediawiki-1.36.1/."),
+            $this->getDocRoot($this->extractsubdir . "/mediawiki-1.38.4/."),
             $this->getDocRoot()], $result);
 
-        $this->appcontext->runUser('v-run-cli-cmd', ['/usr/bin/php',
+        $this->appcontext->runUser('v-run-cli-cmd', ["/usr/bin/php".$options['php_version'],
             $this->getDocRoot('maintenance/install.php'),
             '--dbserver=localhost',
             '--dbname=' . $this->appcontext->user() . '_' . $options['database_name'],
@@ -58,7 +67,7 @@ class MediaWikiSetup extends BaseSetup
             '--installdbpass=' . $options['database_password'],
             '--dbuser=' . $this->appcontext->user() . '_' . $options['database_user'],
             '--dbpass=' . $options['database_password'],
-            '--server=' . $webAddresss,
+            '--server=' . $webDomain,
             '--scriptpath=', // must NOT be /
             '--lang=' . $options['language'],
             '--pass=' . $options['admin_password'],

@@ -1,16 +1,14 @@
 #!/bin/bash
 # info: update hestia package/configs
 # options: PACKAGE
-# labels: panel
 #
 # example: v-update-sys-hestia hestia-php
 #
-# The function runs as apt update trigger. It pulls shell script from hestia
+# This function runs as apt update trigger. It pulls shell script from hestia
 # server and runs it. (hestia, hestia-nginx and hestia-php are valid options)
 
-
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -24,14 +22,13 @@ source $HESTIA/func/main.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
 
-
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
 
 # Checking arg number
 check_args '1' "$#" 'PACKAGE'
-is_hestia_package "hestia,hestia-nginx,hestia-php" "$package"
+is_hestia_package "hestia hestia-nginx hestia-php" "$package"
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode

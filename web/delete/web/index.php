@@ -1,9 +1,7 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-// Init
-error_reporting(null);
 ob_start();
-session_start();
 include($_SERVER['DOCUMENT_ROOT'] . '/inc/main.php');
 
 // Check token
@@ -11,13 +9,12 @@ verify_csrf($_GET);
 
 // Delete as someone else?
 if (($_SESSION['userContext'] === 'admin') && (!empty($_GET['user']))) {
-    $user = $_GET['user'];
+    $user = quoteshellarg($user);
 }
 
 if (!empty($_GET['domain'])) {
-    $v_username = escapeshellarg($user);
-    $v_domain = escapeshellarg($_GET['domain']);
-    exec(HESTIA_CMD . 'v-delete-web-domain ' . $v_username . ' ' . $v_domain . " 'yes'", $output, $return_var);
+    $v_domain = quoteshellarg($_GET['domain']);
+    exec(HESTIA_CMD . 'v-delete-web-domain ' . $user . ' ' . $v_domain . " 'yes'", $output, $return_var);
     check_return_code($return_var, $output);
     unset($output);
 }

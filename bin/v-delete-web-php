@@ -1,15 +1,14 @@
 #!/bin/bash
 # info: delete php fpm version
 # options: VERSION
-# labels: hestia
 #
 # example: v-delete-web-php 7.3
 #
-# The function checks and delete a fpm php version if not used by any domain.
+# This function checks and delete a fpm php version if not used by any domain.
 
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -23,12 +22,15 @@ source $HESTIA/func/main.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
 
-
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
 
 check_args '1' "$#" 'VERSION'
+
+if [ -z "$WEB_BACKEND" ]; then
+    echo "Multiple php versions are not supported for modphp"
+fi
 
 # Set file locations
 php_fpm="/etc/init.d/php$version-fpm"
@@ -44,14 +46,14 @@ fi
 [ -f $HESTIA/data/templates/web/php-fpm/PHP-${version/\./_}.tpl ] && rm -f $HESTIA/data/templates/web/php-fpm/PHP-${version/\./_}.tpl
 
 # Check if php version exists
-if [ ! -f "$php_fpm" ] && [ ! -f "$HESTIA/data/templates/$WEB_SYSTEM/PHP-$version.sh" ]; then
+version_check=$($HESTIA/bin/v-list-sys-php plain | grep "$version");
+if [ -z "$version_check" ] ; then
     echo "ERROR: Specified PHP version is not installed."
-    exit
+    exit "$E_INVALID";
 fi
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
-
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -69,7 +71,11 @@ if [[ `echo "$version 7.2" | awk '{print ($1 < $2)}'` == 1 ]]; then
 fi
 
 # Purge php packages
-apt-get -y purge $mph > /dev/null 2>&1 &
+if [ -f '/etc/redhat-release' ]; then
+    dnf remove -y $mph > /dev/null 2>&1 &
+else
+    apt-get -y purge $mph > /dev/null 2>&1 &
+fi
 BACK_PID=$!
 
 # Check if package removal is done, print a spinner
@@ -87,7 +93,11 @@ echo
 # Check if installation was successfully
 if [ -f "$php_fpm" ]; then
     echo "ERROR: Uninstallation failed, please run the following command manually for debugging:"
-    echo "apt-get purge $mph"
+    if [ -f '/etc/redhat-release' ]; then
+        echo "dnf remove $mph"
+    else
+        echo "apt-get purge $mph"
+    fi
     exit 1; 
 fi
 

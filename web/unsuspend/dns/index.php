@@ -1,9 +1,8 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
 // Init
-error_reporting(null);
 ob_start();
-session_start();
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
 // Check token
@@ -11,9 +10,8 @@ verify_csrf($_GET);
 
 // DNS domain
 if ((!empty($_GET['domain'])) && (empty($_GET['record_id']))) {
-    $v_username = escapeshellarg($user);
-    $v_domain = escapeshellarg($_GET['domain']);
-    exec(HESTIA_CMD."v-unsuspend-dns-domain ".$v_username." ".$v_domain, $output, $return_var);
+    $v_domain = quoteshellarg($_GET['domain']);
+    exec(HESTIA_CMD."v-unsuspend-dns-domain ".$user." ".$v_domain, $output, $return_var);
     if ($return_var != 0) {
         $error = implode('<br>', $output);
         if (empty($error)) {
@@ -33,10 +31,9 @@ if ((!empty($_GET['domain'])) && (empty($_GET['record_id']))) {
 
 // DNS record
 if ((!empty($_GET['domain'])) && (!empty($_GET['record_id']))) {
-    $v_username = escapeshellarg($user);
-    $v_domain = escapeshellarg($_GET['domain']);
-    $v_record_id = escapeshellarg($_GET['record_id']);
-    exec(HESTIA_CMD."v-unsuspend-dns-record ".$v_username." ".$v_domain." ".$v_record_id, $output, $return_var);
+    $v_domain = quoteshellarg($_GET['domain']);
+    $v_record_id = quoteshellarg($_GET['record_id']);
+    exec(HESTIA_CMD."v-unsuspend-dns-record ".$user." ".$v_domain." ".$v_record_id, $output, $return_var);
     if ($return_var != 0) {
         $error = implode('<br>', $output);
         if (empty($error)) {

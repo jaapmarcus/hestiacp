@@ -1,15 +1,13 @@
 #!/bin/bash
 # info: backup system user with all its objects
 # options: USER NOTIFY
-# labels: 
 #
 # example: v-backup-user admin yes
 #
-# The call is used for backing up user with all its domains and databases.
-
+# This function is used for backing up user with all its domains and databases.
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -183,7 +181,7 @@ let v_disk=$(($(stat -f --format="%a*%S" $BACKUP)))/1024/1024
 if [ "$u_disk" -gt "$v_disk" ]; then
     # Always notify on failure
     echo "not enough diskspace available to perform the backup." | $SENDMAIL -s "$subj" "$email" "yes"
-    check_result "$E_LIMIT ""not enough diskspace available to perform the backup."
+    check_result "$E_LIMIT" "not enough diskspace available to perform the backup."
 fi
 
 if [ -z "$BACKUP_TEMP" ]; then
@@ -350,12 +348,7 @@ if [ -n "$WEB_SYSTEM" ] && [ "$WEB" != '*' ]; then
             cp $HESTIA/data/templates/web/$PROXY_SYSTEM/$PROXY.tpl template/$PROXY_SYSTEM/
             cp $HESTIA/data/templates/web/$PROXY_SYSTEM/$PROXY.stpl template/$PROXY_SYSTEM/      
         fi
-        
-        # Backup custom config / backup LE config
-        for sconfig in $(ls $HOMEDIR/$user/conf/web/|grep ".$domain.conf"); do
-            cp $HOMEDIR/$user/conf/web/$sconfig conf/
-        done
-
+    
         # Backup ssl certificates
         if [ "$SSL" = 'yes' ] ; then
             cp $HOMEDIR/$user/conf/web/$domain/ssl/$domain.* conf/
@@ -745,7 +738,6 @@ fi
 echo "$(date "+%F %T") Size: $size MB" |tee -a $BACKUP/$user.log
 echo "$(date "+%F %T") Runtime: $run_time $min" |tee -a $BACKUP/$user.log
 
-
 #----------------------------------------------------------#
 #                       Hestia                             #
 #----------------------------------------------------------#
@@ -770,6 +762,7 @@ echo "$backup_str" >> $USER_DATA/backup.conf
 tail -n $BACKUPS $USER_DATA/backup.conf > $USER_DATA/backup.conf_
 mv -f $USER_DATA/backup.conf_ $USER_DATA/backup.conf
 chmod 660 $USER_DATA/backup.conf
+chmod 660 $BACKUP/$user.log
 
 # Deleting task from queue
 sed -i "/v-backup-user $user /d" $HESTIA/data/queue/backup.pipe
@@ -783,7 +776,6 @@ if [ -e "$BACKUP/$user.log" ] && [ "$notify" = "yes" ]; then
     subj="$user → backup has been completed"
     email=$(get_user_value '$CONTACT')
     cat $BACKUP/$user.log |$SENDMAIL -s "$subj" "$email" "$notify"
-    rm $BACKUP/$user.log
     $BIN/v-add-user-notification "$user" "Backup created successfully" "<b>Archive:</b> $user.$backup_new_date.tar"
 fi
 

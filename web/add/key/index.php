@@ -1,6 +1,8 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(E_ALL);
+ob_start();
+session_start();
 $TAB = 'USER';
 
 // Main include
@@ -16,10 +18,8 @@ if (!empty($_POST['ok'])) {
     }
 
     if (($_SESSION['userContext'] === 'admin') && (!empty($_GET['user']))) {
-        $user = $_GET['user'];
+        $user = quoteshellarg($_GET['user']);
     }
-
-    $user = escapeshellarg($user);
 
     if (!$_SESSION['error_msg']) {
         if ($_POST) {
@@ -28,6 +28,7 @@ if (!empty($_POST['ok'])) {
             $data = json_decode(implode('', $output), true);
             unset($output);
             $keylist = array();
+            $idlist = array();
             foreach ($data as $key => $value) {
                 $idlist[] = trim($data[$key]['ID']);
                 $keylist[] = trim($data[$key]['KEY']);
@@ -48,7 +49,7 @@ if (!empty($_POST['ok'])) {
             if (in_array($v_key_parts[1], $keylist)) {
                 $_SESSION['error_msg']  =  _('SSH KEY already exists');
             }
-            $v_key = escapeshellarg(trim($_POST['v_key']));
+            $v_key = quoteshellarg(trim($_POST['v_key']));
         }
     }
 
@@ -62,7 +63,9 @@ if (!empty($_POST['ok'])) {
         $_SESSION['ok_msg'] = _('SSH KEY created');
     }
 }
-
+if (empty($v_key)) {
+    $v_key = '';
+}
 render_page($user, $TAB, 'add_key');
 
 // Flush session messages

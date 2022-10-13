@@ -1,15 +1,17 @@
 #!/bin/bash
 # info: restart backend server
 # options: NONE
-# labels: web
 #
 # example: v-restart-web-backend
 #
-# The function reloads backend server configuration.
+# This function reloads backend server configuration.
 
+restart=$1
+# For backward compatibility might change in the feature
+version=$2
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Includes
@@ -27,7 +29,6 @@ send_email_report() {
     cat $tmpfile |$SENDMAIL -s "$subj" $email
     [[ -f "$tmpfile" ]] && rm -f $tmpfile
 }
-
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -50,27 +51,35 @@ if [ "$1" = 'scheduled' ] || [ -z "$1" ] && [ "$SCHEDULED_RESTART" = 'yes' ]; th
 fi
 
 tmpfile=$(mktemp)
-php_versions=$(ls /usr/sbin/php*fpm* | cut -d'/' -f4 | sed 's|php-fpm||')
-# Substitute php-fpm service name formats
-for version in $php_versions; do
-    v_php="php$version-fpm"
-    if [ ! -f "/etc/php/${version}/fpm/pool.d/dummy.conf" ]; then
-        cp -f "$HESTIA_INSTALL_DIR/php-fpm/dummy.conf" "/etc/php/${version}/fpm/pool.d/"
-        sed -i "s/9999/99${version//.}/g" "/etc/php/${version}/fpm/pool.d/dummy.conf"
-    fi
 
-    $BIN/v-restart-service "$v_php" >> $tmpfile 2>&1
+if [ -z "$version" ]; then
+    # Substitute php-fpm service name formats
+    for version in $($BIN/v-list-sys-php plain); do
+        v_php="php$version-fpm"
+        if [ ! -f "/etc/php/${version}/fpm/pool.d/dummy.conf" ]; then
+            cp -f "$HESTIA_INSTALL_DIR/php-fpm/dummy.conf" "/etc/php/${version}/fpm/pool.d/"
+            sed -i "s/9999/99${version//.}/g" "/etc/php/${version}/fpm/pool.d/dummy.conf"
+        fi
+    
+        $BIN/v-restart-service "$v_php" "$restart" 
+        if [ $? -ne 0 ]; then
+            send_email_report
+            check_result "$E_RESTART" "$v_php restart failed"
+        fi
+    done
+else
+    v_php="php$version-fpm"
+    $BIN/v-restart-service "$v_php" "$restart" 
     if [ $? -ne 0 ]; then
         send_email_report
         check_result "$E_RESTART" "$v_php restart failed"
     fi
-done
+fi
 
 # Update restart queue
 if [ -e "$HESTIA/data/queue/restart.pipe" ]; then
     sed -i "/\/$SCRIPT now/d" $HESTIA/data/queue/restart.pipe
 fi
-
 
 #----------------------------------------------------------#
 #                       Hestia                             #

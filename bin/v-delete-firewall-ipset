@@ -1,15 +1,13 @@
 #!/bin/bash
 # info: delete firewall ipset
 # options: NAME
-# labels: hestia
 #
 # example: v-delete-firewall-ipset country-nl
 #
-# The function removes ipset from system and from hestia
-
+# This function removes ipset from system and from hestia
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 ip_name=${1}
@@ -21,7 +19,6 @@ source /etc/hestiacp/hestia.conf
 source $HESTIA/func/main.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
-
 
 #----------------------------------------------------------#
 #                    Verifications                         #
@@ -45,13 +42,16 @@ check_hestia_demo_mode
 
 # Install ipset package if missing
 if [ -z "$IPSET_BIN" ]; then
-    apt-get --quiet --yes install ipset > /dev/null
+    if [ -f '/etc/redhat-release' ]; then
+        dnf install -q -y ipset > /dev/null
+    else
+        apt-get --quiet --yes install ipset > /dev/null
+    fi
     check_result $? "Installing ipset package"
 
     IPSET_BIN="$(which ipset)"
     check_result $? "ipset binary not found"
 fi
-
 
 #----------------------------------------------------------#
 #                       Action                             #

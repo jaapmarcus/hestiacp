@@ -1,14 +1,19 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-// Init
-error_reporting(null);
 ob_start();
-session_start();
 
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
 // Check token
 verify_csrf($_POST);
+
+if (empty($_POST['domain'])) {
+    $_POST['domain'] = '';
+}
+if (empty($_POST['action'])) {
+    $_POST['action'] = '';
+}
 
 $domain = $_POST['domain'];
 $action = $_POST['action'];
@@ -29,12 +34,16 @@ if ($_SESSION['userContext'] === 'admin') {
     switch ($action) {
         case 'delete': $cmd='v-delete-web-domain';
             break;
+        case 'suspend': $cmd='v-suspend-web-domain';
+            break;
+        case 'unsuspend': $cmd='v-unsuspend-web-domain';
+            break;
         default: header("Location: /list/web/"); exit;
     }
 }
 
 foreach ($domain as $value) {
-    $value = escapeshellarg($value);
+    $value = quoteshellarg($value);
     exec(HESTIA_CMD.$cmd." ".$user." ".$value." no", $output, $return_var);
     $restart='yes';
 }

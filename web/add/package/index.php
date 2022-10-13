@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'PACKAGE';
 
@@ -30,11 +30,17 @@ if (!empty($_POST['ok'])) {
         if (empty($_POST['v_backend_template'])) {
             $errors[] = _('backend template');
         }
+    }else{
+        # When modphp is enabled
+        $_POST['v_backend_template'] = '';
     }
     if (!empty($_SESSION['PROXY_SYSTEM'])) {
         if (empty($_POST['v_proxy_template'])) {
             $errors[] = _('proxy template');
         }
+    }else{
+        # when nginx only is enabled
+        $_POST['v_proxy_template'] = 'default';
     }
     if (empty($_POST['v_dns_template'])) {
         $errors[] = _('dns template');
@@ -75,7 +81,9 @@ if (!empty($_POST['ok'])) {
     if (!isset($_POST['v_bandwidth'])) {
         $errors[] = _('bandwidth');
     }
-
+    if (!isset($_POST['v_ratelimit'])) {
+        $errors[] = _('rate limit');
+    }
     // Check if name server entries are blank if DNS server is installed
     if ((isset($_SESSION['DNS_SYSTEM'])) && (!empty($_SESSION['DNS_SYSTEM']))) {
         if (empty($_POST['v_ns1'])) {
@@ -97,23 +105,24 @@ if (!empty($_POST['ok'])) {
     }
 
     // Protect input
-    $v_package = escapeshellarg($_POST['v_package']);
-    $v_web_template = escapeshellarg($_POST['v_web_template']);
-    $v_backend_template = escapeshellarg($_POST['v_backend_template']);
-    $v_proxy_template = escapeshellarg($_POST['v_proxy_template']);
-    $v_dns_template = escapeshellarg($_POST['v_dns_template']);
-    $v_shell = escapeshellarg($_POST['v_shell']);
-    $v_web_domains = escapeshellarg($_POST['v_web_domains']);
-    $v_web_aliases = escapeshellarg($_POST['v_web_aliases']);
-    $v_dns_domains = escapeshellarg($_POST['v_dns_domains']);
-    $v_dns_records = escapeshellarg($_POST['v_dns_records']);
-    $v_mail_domains = escapeshellarg($_POST['v_mail_domains']);
-    $v_mail_accounts = escapeshellarg($_POST['v_mail_accounts']);
-    $v_databases = escapeshellarg($_POST['v_databases']);
-    $v_cron_jobs = escapeshellarg($_POST['v_cron_jobs']);
-    $v_backups = escapeshellarg($_POST['v_backups']);
-    $v_disk_quota = escapeshellarg($_POST['v_disk_quota']);
-    $v_bandwidth = escapeshellarg($_POST['v_bandwidth']);
+    $v_package = quoteshellarg($_POST['v_package']);
+    $v_web_template = quoteshellarg($_POST['v_web_template']);
+    $v_backend_template = quoteshellarg($_POST['v_backend_template']);
+    $v_proxy_template = quoteshellarg($_POST['v_proxy_template']);
+    $v_dns_template = quoteshellarg($_POST['v_dns_template']);
+    $v_shell = quoteshellarg($_POST['v_shell']);
+    $v_web_domains = quoteshellarg($_POST['v_web_domains']);
+    $v_web_aliases = quoteshellarg($_POST['v_web_aliases']);
+    $v_dns_domains = quoteshellarg($_POST['v_dns_domains']);
+    $v_dns_records = quoteshellarg($_POST['v_dns_records']);
+    $v_mail_domains = quoteshellarg($_POST['v_mail_domains']);
+    $v_mail_accounts = quoteshellarg($_POST['v_mail_accounts']);
+    $v_databases = quoteshellarg($_POST['v_databases']);
+    $v_cron_jobs = quoteshellarg($_POST['v_cron_jobs']);
+    $v_backups = quoteshellarg($_POST['v_backups']);
+    $v_disk_quota = quoteshellarg($_POST['v_disk_quota']);
+    $v_bandwidth = quoteshellarg($_POST['v_bandwidth']);
+    $v_ratelimit = quoteshellarg($_POST['v_ratelimit']);
     $v_ns1 = trim($_POST['v_ns1'], '.');
     $v_ns2 = trim($_POST['v_ns2'], '.');
     $v_ns3 = trim($_POST['v_ns3'], '.');
@@ -141,9 +150,9 @@ if (!empty($_POST['ok'])) {
     if (!empty($v_ns8)) {
         $v_ns .= ",".$v_ns8;
     }
-    $v_ns = escapeshellarg($v_ns);
-    $v_time = escapeshellarg(date('H:i:s'));
-    $v_date = escapeshellarg(date('Y-m-d'));
+    $v_ns = quoteshellarg($v_ns);
+    $v_time = quoteshellarg(date('H:i:s'));
+    $v_date = quoteshellarg(date('Y-m-d'));
 
     // Create package file
     if (empty($_SESSION['error_msg'])) {
@@ -165,6 +174,7 @@ if (!empty($_POST['ok'])) {
         $pkg .= "CRON_JOBS=".$v_cron_jobs."\n";
         $pkg .= "DISK_QUOTA=".$v_disk_quota."\n";
         $pkg .= "BANDWIDTH=".$v_bandwidth."\n";
+        $pkg .= "RATE_LIMIT=".$v_ratelimit."\n";
         $pkg .= "NS=".$v_ns."\n";
         $pkg .= "SHELL=".$v_shell."\n";
         $pkg .= "BACKUPS=".$v_backups."\n";
@@ -220,6 +230,9 @@ $shells = json_decode(implode('', $output), true);
 unset($output);
 
 // Set default values
+if (empty($v_package)) {
+    $v_package = '';
+}
 if (empty($v_web_template)) {
     $v_web_template = 'default';
 }
@@ -239,19 +252,19 @@ if (empty($v_web_domains)) {
     $v_web_domains = "'1'";
 }
 if (empty($v_web_aliases)) {
-    $v_web_aliases = "'1'";
+    $v_web_aliases = "'5'";
 }
 if (empty($v_dns_domains)) {
     $v_dns_domains = "'1'";
 }
 if (empty($v_dns_records)) {
-    $v_dns_records = "'1'";
+    $v_dns_records = "'unlimited'";
 }
 if (empty($v_mail_domains)) {
     $v_mail_domains = "'1'";
 }
 if (empty($v_mail_accounts)) {
-    $v_mail_accounts = "'1'";
+    $v_mail_accounts = "'5'";
 }
 if (empty($v_databases)) {
     $v_databases = "'1'";
@@ -268,13 +281,33 @@ if (empty($v_disk_quota)) {
 if (empty($v_bandwidth)) {
     $v_bandwidth = "'1000'";
 }
+if (empty($v_ratelimit)) {
+    $v_ratelimit = "'200'";
+}
 if (empty($v_ns1)) {
     $v_ns1 = 'ns1.example.ltd';
 }
 if (empty($v_ns2)) {
     $v_ns2 = 'ns2.example.ltd';
 }
-
+if (empty($v_ns3)) {
+    $v_ns3 = '';
+}
+if (empty($v_ns4)) {
+    $v_ns4 = '';
+}
+if (empty($v_ns5)) {
+    $v_ns5 = '';
+}
+if (empty($v_ns6)) {
+    $v_ns6 = '';
+}
+if (empty($v_ns7)) {
+    $v_ns7 = '';
+}
+if (empty($v_ns8)) {
+    $v_ns8 = '';
+}
 // Render page
 render_page($user, $TAB, 'add_package');
 

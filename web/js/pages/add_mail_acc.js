@@ -73,7 +73,7 @@ $('#v_blackhole').on('click', function(evt){
        $('#id_fwd_for').hide();
     }else{
        $('#v_fwd').prop('disabled', false);
-       $('#id_fwd_for').show();        
+       $('#id_fwd_for').show();
     }
 });
 $('form[name="v_quota"]').on('submit', function(evt) {
@@ -85,19 +85,19 @@ $('form[name="v_quota"]').on('submit', function(evt) {
     });
 });
 
-App.Actions.MAIL_ACC.update_v_password = function (){
+App.Actions.MAIL_ACC.update_password_meter = function (){
     var password = $('input[name="v_password"]').val();
     var min_small = new RegExp(/^(?=.*[a-z]).+$/);
     var min_cap = new RegExp(/^(?=.*[A-Z]).+$/);
-    var min_num = new RegExp(/^(?=.*\d).+$/); 
+    var min_num = new RegExp(/^(?=.*\d).+$/);
     var min_length = 8;
     var score = 0;
-    
+
     if(password.length >= min_length) { score = score + 1; }
     if(min_small.test(password)) { score = score + 1;}
     if(min_cap.test(password)) { score = score + 1;}
     if(min_num.test(password)) { score = score+ 1; }
-    $('#meter').val(score);   
+    $('.password-meter').val(score);
 }
 
 App.Listeners.MAIL_ACC.keypress_v_password = function() {
@@ -106,7 +106,7 @@ App.Listeners.MAIL_ACC.keypress_v_password = function() {
         clearTimeout(window.frp_usr_tmt);
         window.frp_usr_tmt = setTimeout(function() {
             var elm = $(evt.target);
-            App.Actions.MAIL_ACC.update_v_password(elm, $(elm).val());
+            App.Actions.MAIL_ACC.update_password_meter(elm, $(elm).val());
         }, 100);
     });
 }
@@ -114,34 +114,21 @@ App.Listeners.MAIL_ACC.keypress_v_password = function() {
 App.Listeners.MAIL_ACC.keypress_v_password();
 
 
-randomString = function(min_length = 16) {
-    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz';
-    var string_length = min_length;
-    var randomstring = '';
-    for (var i = 0; i < string_length; i++) {
-        var rnum = Math.floor(Math.random() * chars.length);
-        randomstring += chars.substr(rnum, 1);
-    }
-    var regex = new RegExp(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\d)[a-zA-Z\d]{8,}$/);
-    if(!regex.test(randomstring)){
-        randomString();
-    }else{
-        $('input[name=v_password]').val(randomstring);
+applyRandomString = function(min_length = 16) {
+    var randomString = randomString2(min_length);
+        $('input[name=v_password]').val(randomString);
         if($('input[name=v_password]').attr('type') == 'text')
-            $('#v_password').text(randomstring);
+            $('#v_password').text(randomString);
         else
-            $('#v_password').text(Array(randomstring.length+1).join('*'));
-        
-        App.Actions.MAIL_ACC.update_v_password();
+            $('#v_password').text(Array(randomString.length+1).join('*'));
+        App.Actions.MAIL_ACC.update_password_meter();
         generate_mail_credentials();
-    }    
 }
 
 generate_mail_credentials = function() {
     var div = $('.mail-infoblock').clone();
     div.find('#mail_configuration').remove();
-    var pass=div.find('#v_password').text();
-    if (pass=="") div.find('#v_password').html(' ');
+    var pass=$('#v_password').text();
     var output = div.text();
     output=output.replace(/(?:\r\n|\r|\n|\t)/g, "|");
     output=output.replace(/  /g, "");
@@ -153,7 +140,6 @@ generate_mail_credentials = function() {
     output=output.replace(/ $/, "");
     output=output.replace(/:\|/g, ": ");
     output=output.replace(/\|/g, "\n");
-    //console.log(output);
     $('#v_credentials').val(output);
 }
 
@@ -176,10 +162,7 @@ $(document).ready(function() {
     });
 
     $('.toggle-psw-visibility-icon').click(function(){
-        if($('input[name=v_password]').attr('type') == 'text')
-            $('#v_password').text($('input[name=v_password]').val());
-        else
-            $('#v_password').text(Array($('input[name=v_password]').val().length+1).join('*'));
+        $('#v_password').text($('input[name=v_password]').val());
         generate_mail_credentials();
     });
 
@@ -188,29 +171,29 @@ $(document).ready(function() {
 
         switch(opt.attr('v_type')){
             case 'hostname':
-                $('#td_imap_hostname').html(opt.attr('domain'));
-                $('#td_smtp_hostname').html(opt.attr('domain'));
+                $('#td_imap_hostname').text(opt.attr('domain'));
+                $('#td_smtp_hostname').text(opt.attr('domain'));
                 break;
             case 'starttls':
-                $('#td_imap_port').html('143');
-                $('#td_imap_encryption').html('STARTTLS');
-                $('#td_smtp_port').html('587');
-                $('#td_smtp_encryption').html('STARTTLS');
+                $('#td_imap_port').text('143');
+                $('#td_imap_encryption').text('STARTTLS');
+                $('#td_smtp_port').text('587');
+                $('#td_smtp_encryption').text('STARTTLS');
                 break;
             case 'ssl':
-                $('#td_imap_port').html('993');
-                $('#td_imap_encryption').html('SSL / TLS');
-                $('#td_smtp_port').html('465');
-                $('#td_smtp_encryption').html('SSL / TLS');
+                $('#td_imap_port').text('993');
+                $('#td_imap_encryption').text('SSL / TLS');
+                $('#td_smtp_port').text('465');
+                $('#td_smtp_encryption').text('SSL / TLS');
                 break;
             case 'no_encryption':
-                $('#td_imap_hostname').html(opt.attr('domain'));
-                $('#td_smtp_hostname').html(opt.attr('domain'));
+                $('#td_imap_hostname').text(opt.attr('domain'));
+                $('#td_smtp_hostname').text(opt.attr('domain'));
 
-                $('#td_imap_port').html('143');
-                $('#td_imap_encryption').html(opt.attr('no_encryption'));
-                $('#td_smtp_port').html('25');
-                $('#td_smtp_encryption').html(opt.attr('no_encryption'));
+                $('#td_imap_port').text('143');
+                $('#td_imap_encryption').text(opt.attr('no_encryption'));
+                $('#td_smtp_port').text('25');
+                $('#td_smtp_encryption').text(opt.attr('no_encryption'));
                 break;
         }
         generate_mail_credentials();

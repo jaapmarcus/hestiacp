@@ -13,6 +13,8 @@
 #----------------------------------------------------------#
 
 # Includes
+# shellcheck source=/etc/hestiacp/hestia.conf
+source /etc/hestiacp/hestia.conf
 # shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
 # shellcheck source=/usr/local/hestia/conf/hestia.conf
@@ -38,7 +40,7 @@ function setupFiles
 		read -i $SERVER_SMTP_USER -e smtp_server_user_name
 		echo "Enter SMTP Password (stored as plaintext):"
 		read -i $SERVER_SMTP_PASSWD -e smtp_server_password
-		echo "Enter SMTP Address:"
+		echo "Enter Email Address:"
 		read -i $SERVER_SMTP_ADDR -e smtp_server_addr
 	else
 		use_smtp=false
@@ -51,7 +53,7 @@ function setupFiles
 	SMTP Security: $smtp_server_security
 	SMTP Username: $smtp_server_user_name
 	SMTP Password: $smtp_server_password
-	SMTP Address: $smtp_server_addr
+	Email Address: $smtp_server_addr
 	Are these values correct? (y/N)"
 	read correct_validation
 	correct="${correct_validation:-n}"

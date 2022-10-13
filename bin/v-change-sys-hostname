@@ -1,20 +1,17 @@
 #!/bin/bash
 # info: change hostname
 # options: HOSTNAME
-# labels: panel
 #
 # example: v-change-sys-hostname mydomain.tld
 #
-# The function for changing system hostname.
-
+# This function for changing system hostname.
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
 domain=$1
-helo=${2-yes}
 
 # Includes
 # shellcheck source=/etc/hestiacp/hestia.conf
@@ -24,17 +21,15 @@ source $HESTIA/func/main.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
 
-
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
 
-check_args '1' "$#" 'HOSTNAME [HELO]'
+check_args '1' "$#" 'HOSTNAME'
 is_format_valid 'domain'
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
-
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -54,21 +49,21 @@ else
     # Debian/Ubuntu
     hostnamectl set-hostname "$domain"
     echo "$domain" > /etc/hostname
-
-    # Update Roundcube password plugin configuration
-    if [ -d /etc/roundcube/ ]; then
-        sed -i "/password_hestia_host/c\$rcmail_config['password_hestia_host'] = '$domain';" /etc/roundcube/plugins/password/config.inc.php
-    fi
-    if [ -d /etc/rainloop/ ]; then
-        sed -i "/hestia_host/c\hestia_host = \"$domain\"" /etc/rainloop/data/_data_/_default_/configs/plugin-hestia-change-password.ini 
-    fi
 fi
 
-# Update ip helo for exim
-if [[ -n "$MAIL_SYSTEM" && "$helo" == "yes" ]]; then
-    pub_ip=$(curl --ipv4 -s https://ip.hestiacp.com/)
-    $BIN/v-change-sys-ip-helo $pub_ip $domain
+# Update Roundcube password plugin configuration
+if [ -d /etc/roundcube/ ]; then
+    sed -i "/password_hestia_host/c\$rcmail_config['password_hestia_host'] = '$domain';" /etc/roundcube/plugins/password/config.inc.php
 fi
+if [ -d /etc/rainloop/ ]; then
+    sed -i "/hestia_host/c\hestia_host = \"$domain\"" /etc/rainloop/data/_data_/_default_/configs/plugin-hestia-change-password.ini 
+fi
+
+if [ -f /etc/hosts ];then
+    if ! cat /etc/hosts | grep $domain > /dev/null ; then
+        echo "127.0.0.1 $domain" >> /etc/hosts
+    fi
+fi 
 
 #----------------------------------------------------------#
 #                       Hestia                             #

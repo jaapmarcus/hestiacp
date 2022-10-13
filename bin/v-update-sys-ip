@@ -1,18 +1,16 @@
 #!/bin/bash
 # info: update system ip
 # options: NONE
-# labels: panel
 #
 # example: v-update-sys-ip
 #          # Intended for internal usage
 #
-# The function scans configured ip in the system and register them with hestia
+# This function scans configured ip in the system and register them with hestia
 # internal database. This call is intended for use on vps servers, where ip is
-# set by hypervizor.
-
+# set by hypervisor.
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Includes
@@ -24,7 +22,6 @@ source $HESTIA/func/main.sh
 source $HESTIA/func/ip.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
-
 
 #----------------------------------------------------------#
 #                    Verifications                         #
@@ -75,8 +72,23 @@ if [ ! -z "$new" ]; then
             sed -i "s/$old/$new/g" $HESTIA/data/users/$user/web.conf
             $BIN/v-rebuild-web-domains "$user" no
         done
+        
+        if [ -e "/etc/apache2/mods-available/remoteip.conf" ]; then
+           sed -i "s/$old/$new/g" /etc/apache2/mods-available/remoteip.conf
+        fi
+        
+        if [ -e "/etc/apache2/mods-enabled/rpaf.conf" ]; then
+           sed -i "s/$old/$new/g" /etc/apache2/mods-enabled/rpaf.conf
+        fi
+        
         $BIN/v-restart-proxy
         $BIN/v-restart-web
+    fi
+    
+    if [ -n "$IMAP_SYSTEM" ]; then
+        for user in $($HESTIA/bin/v-list-sys-users plain); do
+            $BIN/v-rebuild-mail-domains "$user" no
+        done
     fi
 
     # Updating DNS
@@ -89,7 +101,6 @@ if [ ! -z "$new" ]; then
         $BIN/v-restart-dns
     fi
     
-
     # Updating FTP
     if [ ! -z "$FTP_SYSTEM" ] && [ "$FTP_SYSTEM" = 'vsftpd' ]; then
         conf=$(find /etc/ -maxdepth 2 -name $FTP_SYSTEM.conf)
@@ -124,15 +135,6 @@ if [ ! -e "$HESTIA/data/ips/$pub_ip" ]; then
     if [ -z "$(grep -R "$pub_ip" $HESTIA/data/ips/)" ]; then
         ip=$(ls -t $HESTIA/data/ips/ |head -n1)
         $BIN/v-change-sys-ip-nat "$ip" "$pub_ip"
-    fi
-fi
-
-# Update ip helo for exim
-if [ -n "$MAIL_SYSTEM" ]; then
-    helo=$(is_ip_rdns_valid "$pub_ip")
-
-    if [ -n "$helo" ]; then
-        $BIN/v-change-sys-ip-helo "$ip" "$helo"
     fi
 fi
 

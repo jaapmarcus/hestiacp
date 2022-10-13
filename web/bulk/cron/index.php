@@ -1,9 +1,6 @@
 <?php
-
-// Init
-error_reporting(null);
+use function Hestiacp\quoteshellarg\quoteshellarg;
 ob_start();
-session_start();
 
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
@@ -60,7 +57,7 @@ if ($_SESSION['userContext'] === 'admin') {
 }
 
 foreach ($job as $value) {
-    $value = escapeshellarg($value);
+    $value = quoteshellarg($value);
     exec(HESTIA_CMD.$cmd." ".$user." ".$value." no", $output, $return_var);
     $restart = 'yes';
 }

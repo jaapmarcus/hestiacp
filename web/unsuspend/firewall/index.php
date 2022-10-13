@@ -1,9 +1,8 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
 // Init
-error_reporting(null);
 ob_start();
-session_start();
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
 // Check token
@@ -16,7 +15,7 @@ if ($_SESSION['userContext'] != 'admin') {
 }
 
 if (!empty($_GET['rule'])) {
-    $v_rule = escapeshellarg($_GET['rule']);
+    $v_rule = quoteshellarg($_GET['rule']);
     exec(HESTIA_CMD."v-unsuspend-firewall-rule ".$v_rule, $output, $return_var);
 }
 check_return_code($return_var, $output);

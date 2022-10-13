@@ -1,4 +1,11 @@
 #!/bin/bash
+
+#===========================================================================#
+#                                                                           #
+# Hestia Control Panel - IP/Network Function Library                        #
+#                                                                           #
+#===========================================================================#
+
 # Check ip ownership
 is_ip_owner() {
     owner=$(grep 'OWNER=' $HESTIA/data/ips/$ip |cut -f 2 -d \')
@@ -44,42 +51,6 @@ is_ip_rdns_valid() {
     return 1 # False
 }
 
-# Update ip helo for exim
-update_ip_helo_value() {
-    ip="$1"
-    helo="$2"
-    natip="$1"
-    
-    # In case the IP is an NAT use the real ip address 
-    if [ ! -e "$HESTIA/data/ips/$ip" ]; then
-        ip=$(get_real_ip $ip);
-    fi 
-    
-    # Create or update ip value
-    update_ip_value_new 'HELO' "$helo"
-
-    # Create mailhelo.conf file if doesn't exist
-    if [ ! -e "/etc/${MAIL_SYSTEM}/mailhelo.conf" ]; then
-        touch /etc/${MAIL_SYSTEM}/mailhelo.conf
-    fi
-
-    #Create or update ip:helo pair in mailhelo.conf file
-    if [ -n "$helo" ]; then
-        if [ $(cat /etc/${MAIL_SYSTEM}/mailhelo.conf | grep "$natip") ]; then
-            sed -i "/^$natip:/c $natip:$helo" /etc/${MAIL_SYSTEM}/mailhelo.conf
-        else
-            echo $natip:$helo >> /etc/${MAIL_SYSTEM}/mailhelo.conf
-        fi
-    else
-        sed -i "/^$natip:/d" /etc/${MAIL_SYSTEM}/mailhelo.conf
-    fi
-}
-
-delete_ip_helo_value (){
-    ip=$1
-    sed -i "/^$ip:/d" /etc/${MAIL_SYSTEM}/mailhelo.conf   
-}
-
 # Update ip address value
 update_ip_value() {
     key="$1"
@@ -119,7 +90,7 @@ get_ip_alias() {
 # Increase ip value
 increase_ip_value() {
     sip=${1-ip}
-    USER=$user
+    USER=${2-$user}
     web_key='U_WEB_DOMAINS'
     usr_key='U_SYS_USERS'
     current_web=$(grep "$web_key=" $HESTIA/data/ips/$sip |cut -f 2 -d \')
@@ -156,7 +127,7 @@ increase_ip_value() {
 # Decrease ip value
 decrease_ip_value() {
     sip=${1-ip}
-    USER=$user
+    local user=${2-$user}
     web_key='U_WEB_DOMAINS'
     usr_key='U_SYS_USERS'
 

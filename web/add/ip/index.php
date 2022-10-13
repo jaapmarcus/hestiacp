@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'IP';
 
@@ -44,13 +44,12 @@ if (!empty($_POST['ok'])) {
     }
 
     // Protect input
-    $v_ip = escapeshellarg($_POST['v_ip']);
-    $v_netmask = escapeshellarg($_POST['v_netmask']);
-    $v_name = escapeshellarg($_POST['v_name']);
-    $v_nat = escapeshellarg($_POST['v_nat']);
-    $v_helo = escapeshellarg($_POST['v_helo']);
-    $v_interface = escapeshellarg($_POST['v_interface']);
-    $v_owner = escapeshellarg($_POST['v_owner']);
+    $v_ip = quoteshellarg($_POST['v_ip']);
+    $v_netmask = quoteshellarg($_POST['v_netmask']);
+    $v_name = quoteshellarg($_POST['v_name']);
+    $v_nat = quoteshellarg($_POST['v_nat']);
+    $v_interface = quoteshellarg($_POST['v_interface']);
+    $v_owner = quoteshellarg($_POST['v_owner']);
     $v_shared = $_POST['v_shared'];
 
     // Check shared checkmark
@@ -63,7 +62,7 @@ if (!empty($_POST['ok'])) {
 
     // Add IP
     if (empty($_SESSION['error_msg'])) {
-        exec(HESTIA_CMD."v-add-sys-ip ".$v_ip." ".$v_netmask." ".$v_interface."  ".$v_owner." ".escapeshellarg($ip_status)." ".$v_name." ".$v_nat." ".$v_helo, $output, $return_var);
+        exec(HESTIA_CMD."v-add-sys-ip ".$v_ip." ".$v_netmask." ".$v_interface."  ".$v_owner." ".quoteshellarg($ip_status)." ".$v_name." ".$v_nat, $output, $return_var);
         check_return_code($return_var, $output);
         unset($output);
         $v_owner = $_POST['v_owner'];
@@ -77,7 +76,6 @@ if (!empty($_POST['ok'])) {
         unset($v_netmask);
         unset($v_name);
         unset($v_nat);
-        unset($v_helo);
     }
 }
 
@@ -91,6 +89,27 @@ exec(HESTIA_CMD."v-list-sys-users 'json'", $output, $return_var);
 $users = json_decode(implode('', $output), true);
 unset($output);
 
+if (empty($v_ip)) {
+    $v_ip = '';
+}
+if (empty($v_netmask)) {
+    $v_netmask = '';
+}
+if (empty($v_name)) {
+    $v_name = '';
+}
+if (empty($v_nat)) {
+    $v_nat = '';
+}
+if (empty($v_interface)) {
+    $v_interface = '';
+}
+if (empty($ip_status)) {
+    $ip_status = '';
+}
+if (empty($v_owner)) {
+    $v_owner = '';
+}
 // Render
 render_page($user, $TAB, 'add_ip');
 

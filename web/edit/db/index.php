@@ -1,7 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-// Init
-error_reporting(null);
 ob_start();
 $TAB = 'DB';
 
@@ -16,19 +15,20 @@ if (empty($_GET['database'])) {
 
 // Edit as someone else?
 if (($_SESSION['userContext'] === 'admin') && (!empty($_GET['user']))) {
-    $user=escapeshellarg($_GET['user']);
+    $user=quoteshellarg($_GET['user']);
+    $user_plain=htmlentities($_GET['user']);
 }
 
 // List datbase
 $v_database = $_GET['database'];
-exec(HESTIA_CMD."v-list-database ".$user." ".escapeshellarg($v_database)." 'json'", $output, $return_var);
-check_return_code($return_var, $output);
+exec(HESTIA_CMD."v-list-database ".$user." ".quoteshellarg($v_database)." 'json'", $output, $return_var);
+check_return_code_redirect($return_var, $output, '/list/db/');
 $data = json_decode(implode('', $output), true);
 unset($output);
 
 // Parse database
 $v_username = $user;
-$v_dbuser =  preg_replace("/^".$user."_/", "", $data[$v_database]['DBUSER']);
+$v_dbuser =  preg_replace("/^".$user_plain."_/", "", $data[$v_database]['DBUSER']);
 $v_password = "";
 $v_host = $data[$v_database]['HOST'];
 $v_type = $data[$v_database]['TYPE'];
@@ -51,11 +51,17 @@ if (!empty($_POST['save'])) {
 
     // Change database user
     if (($v_dbuser != $_POST['v_dbuser']) && (empty($_SESSION['error_msg']))) {
-        $v_dbuser = escapeshellarg($v_dbuser);
-        exec(HESTIA_CMD."v-change-database-user ".$v_username." ".escapeshellarg($v_database)." ".$v_dbuser, $output, $return_var);
+        $cmd = implode(" ", array(
+            HESTIA_CMD . "v-change-database-user",
+            // $user is already shell-quoted
+            $user,
+            quoteshellarg($v_database),
+            quoteshellarg($_POST['v_dbuser']),
+        ));
+        exec($cmd, $output, $return_var);
+
         check_return_code($return_var, $output);
         unset($output);
-        $v_dbuser = $user."_".preg_replace("/^".$user."_/", "", $_POST['v_dbuser']);
     }
 
     // Change database password
@@ -67,11 +73,11 @@ if (!empty($_POST['save'])) {
             $fp = fopen($v_password, "w");
             fwrite($fp, $_POST['v_password']."\n");
             fclose($fp);
-            exec(HESTIA_CMD."v-change-database-password ".$v_username." ".escapeshellarg($v_database)." ".$v_password, $output, $return_var);
+            exec(HESTIA_CMD."v-change-database-password ".$user." ".quoteshellarg($v_database)." ".$v_password, $output, $return_var);
             check_return_code($return_var, $output);
             unset($output);
             unlink($v_password);
-            $v_password = escapeshellarg($_POST['v_password']);
+            $v_password = quoteshellarg($_POST['v_password']);
         }
     }
 
@@ -79,6 +85,11 @@ if (!empty($_POST['save'])) {
     if (empty($_SESSION['error_msg'])) {
         $_SESSION['ok_msg'] = _('Changes has been saved.');
     }
+    // if the mysql username was changed, render_page() below will render with the OLD mysql username,
+    // to prvent that, make the browser refresh the page.
+    http_response_code(303);
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    die();
 }
 
 // Render page

@@ -1,5 +1,5 @@
 <?php
-error_reporting(NULL);
+use function Hestiacp\quoteshellarg\quoteshellarg;
 $TAB = 'BACKUP';
 
 // Main include
@@ -18,7 +18,7 @@ if (empty($_GET['backup'])){
 
     render_page($user, $TAB, 'list_backup');
 } else {
-    exec (HESTIA_CMD."v-list-user-backup $user ".escapeshellarg($_GET['backup'])." json", $output, $return_var);
+    exec (HESTIA_CMD."v-list-user-backup $user ".quoteshellarg($_GET['backup'])." json", $output, $return_var);
     $data = json_decode(implode('', $output), true);
     $data = array_reverse($data,true);
     unset($output);

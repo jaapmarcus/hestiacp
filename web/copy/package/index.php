@@ -1,9 +1,7 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-// Init
-error_reporting(null);
 ob_start();
-session_start();
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
 // Check token
@@ -23,7 +21,7 @@ if (empty($_GET['package'])) {
 
 if ($_SESSION['userContext'] === 'admin') {
     if (!empty($_GET['package'])) {
-        $v_package = escapeshellarg($_GET['package']);
+        $v_package = quoteshellarg($_GET['package']);
         exec(HESTIA_CMD."v-copy-user-package ".$v_package." ".$v_package."-copy", $output, $return_var);
     }
 

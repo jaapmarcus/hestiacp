@@ -1,13 +1,11 @@
 #!/bin/bash
 # info: add system quota
 # options: NONE
-# labels: 
 #
 # example: v-add-sys-quota
 #
-# The script enables filesystem quota on /home partition
+# This function enables filesystem quota on /home partition
 # Some kernels do require additional packages to be installed first
-
 
 #----------------------------------------------------------#
 #                 Variable & Function                      #
@@ -18,7 +16,6 @@
 source $HESTIA/func/main.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
-
 
 #----------------------------------------------------------#
 #                    Verifications                         #
@@ -38,18 +35,18 @@ fi
 # Checking quota package
 quota=$(which --skip-alias --skip-functions quota 2>/dev/null)
 if [ $? -ne 0 ]; then
-    if [ -d "/etc/sysconfig" ]; then
-        yum -y install quota >/dev/null 2>&1
-        check_result $? "quota package installation failed" "$E_UPDATE"
+    if [ -f "/etc/redhat-release" ]; then
+        dnf -y install quota >/dev/null 2>&1
     else
         export DEBIAN_FRONTEND=noninteractive
         apt-get -y install quota >/dev/null 2>&1
-        check_result $? "quota package installation failed" "$E_UPDATE"
     fi
+    check_result $? "quota package installation failed" "$E_UPDATE"
 fi
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
+
 #----------------------------------------------------------#
 #                       Action                             #
 #----------------------------------------------------------#
@@ -96,7 +93,6 @@ fi
 for user in $($HESTIA/bin/v-list-sys-users plain); do
     $BIN/v-update-user-quota "$user"
 done
-
 
 #----------------------------------------------------------#
 #                       Hestia                             #

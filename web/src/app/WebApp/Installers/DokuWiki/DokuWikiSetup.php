@@ -11,7 +11,7 @@ class DokuWikiSetup extends BaseSetup {
 		'name' => 'DokuWiki',
 		'group' => 'wiki',
 		'enabled' => true,
-		'version' => 'stable_2020-07-29',
+		'version' => 'stable_2022-07-31a',
 		'thumbnail' => 'dokuwiki-logo.svg'
 	];
 	
@@ -31,7 +31,7 @@ class DokuWikiSetup extends BaseSetup {
 					'0: Open Wiki (read, write, upload for everyone)', // 0
 					'1: Public Wiki (read for everyone, write and upload for registered users)', // 1
 					'2: Closed Wiki (read, write, upload for registered users only)' // 3
-			   	],
+			    	],
 			],
 			'content_license' => [
 				'type' => 'select',
@@ -48,31 +48,35 @@ class DokuWikiSetup extends BaseSetup {
 			],
 		 ],
 		'resources' => [
-			'archive'  => [ 'src' => 'https://github.com/splitbrain/dokuwiki/archive/refs/tags/release_stable_2020-07-29.zip' ],
+			'archive'  => [ 'src' => 'https://github.com/splitbrain/dokuwiki/archive/refs/tags/release_stable_2022-07-31a.zip' ],
+		],
+		'server' => [
+			'nginx' => [
+				'template' => 'default'
+			],
+			'php' => [ 
+				'supported' => [ '7.3','7.4','8.0','8.1' ],
+			]
 		], 
 	];
 	
-	public function install(array $options = null)
+	public function install(array $options = null, &$status=null)
 	{
 		parent::install($options);
-		
+		parent::setup($options);
+			
 		//check if ssl is enabled 
         $this->appcontext->run('v-list-web-domain', [$this->appcontext->user(), $this->domain, 'json'], $status);
-		
-        if($status->code !== 0) {
-            throw new \Exception("Cannot list domain");
-        }
-        
 		$sslEnabled = ($status->json[$this->domain]['SSL'] == 'no' ? 0 : 1);
 
 		$webDomain = ($sslEnabled ? "https://" : "http://") . $this->domain . "/";
 		
 		$this->appcontext->runUser('v-copy-fs-directory',[
-			$this->getDocRoot($this->extractsubdir . "/dokuwiki-release_stable_2020-07-29/."),
-			$this->getDocRoot()], $result);
+			$this->getDocRoot($this->extractsubdir . "/dokuwiki-release_stable_2022-07-31a/."),
+			$this->getDocRoot()], $status);
 
 		// enable htaccess
-		$this->appcontext->runUser('v-move-fs-file', [$this->getDocRoot(".htaccess.dist"), $this->getDocRoot(".htaccess")], $result);
+		$this->appcontext->runUser('v-move-fs-file', [$this->getDocRoot(".htaccess.dist"), $this->getDocRoot(".htaccess")], $status);
 
 		$installUrl = $webDomain . "install.php";
 
@@ -81,23 +85,25 @@ class DokuWikiSetup extends BaseSetup {
 		  . "--url $installUrl "
 		  . "--header 'Content-Type: application/x-www-form-urlencoded' "
 		  . "--data l=en "
-		  . "--data 'd[title]=" . $options['wiki_name'] . "' "
+		  . "--data 'd[title]=" . rawurlencode($options['wiki_name']) . "' "
 		  . "--data 'd[acl]=on' "
-		  . "--data 'd[superuser]=" . $options['superuser'] . "' "
-		  . "--data 'd[fullname]=" . $options['real_name'] . "' "
-		  . "--data 'd[email]=" . $options['email'] . "' "
-		  . "--data 'd[password]=" . $options['password'] . "' "
-		  . "--data 'd[confirm]=" . $options['password'] . "' "
-		  . "--data 'd[policy]=" . substr($options['initial_ACL_policy'], 0, 1) . "' "
-		  . "--data 'd[license]=" . explode(":", $options['content_license'])[0] . "' "
+		  . "--data 'd[superuser]=" . rawurlencode($options['superuser']) . "' "
+		  . "--data 'd[fullname]=" . rawurlencode($options['real_name']) . "' "
+		  . "--data 'd[email]=" . rawurlencode($options['email']) . "' "
+		  . "--data 'd[password]=" . rawurlencode($options['password']) . "' "
+		  . "--data 'd[confirm]=" . rawurlencode($options['password']) . "' "
+		  . "--data 'd[policy]=" . substr(rawurlencode($options['initial_ACL_policy']), 0, 1) . "' "
+		  . "--data 'd[license]=" . explode(":", rawurlencode($options['content_license'])[0]) . "' "
 		  . "--data submit=";
 
-		exec($cmd, $msg, $code);
-
+		exec($cmd, $output, $return_var);
+		if($return_var > 0){
+			throw new \Exception(implode( PHP_EOL, $output));
+		}
 		// remove temp folder
-		$this->appcontext->runUser('v-delete-fs-file', [$this->getDocRoot("install.php")], $result);
+		$this->appcontext->runUser('v-delete-fs-file', [$this->getDocRoot("install.php")], $status);
 		$this->cleanup();
 
-		return ($code === 0);
+		return ($status->code === 0);
 	}
 }

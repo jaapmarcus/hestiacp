@@ -18,4 +18,8 @@ server {
     location / {
         proxy_pass  http://%ip%:%web_port%;
     }
+
+    proxy_hide_header Upgrade;
+    
+    include %home%/%user%/conf/mail/%root_domain%/%proxy_system%.ssl.conf_*;
 }

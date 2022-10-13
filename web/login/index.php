@@ -1,11 +1,12 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
 define('NO_AUTH_REQUIRED', true);
 // Main include
+
 include($_SERVER['DOCUMENT_ROOT'] . '/inc/main.php');
 
-$TAB = 'login';
-
+$TAB = 'LOGIN';
 
 if (isset($_GET['logout'])) {
     unset($_SESSION);
@@ -22,8 +23,8 @@ if (isset($_SESSION['user'])) {
     if (($_SESSION['userContext'] === 'admin') && (!empty($_GET['loginas']))) {
         // Ensure token is passed and matches before granting user impersonation access
         if (verify_csrf($_GET)) {
-            $v_user = escapeshellarg($_GET['loginas']);
-            $v_impersonator = escapeshellarg($_SESSION['user']);
+            $v_user = quoteshellarg($_GET['loginas']);
+            $v_impersonator = quoteshellarg($_SESSION['user']);
             exec(HESTIA_CMD . "v-list-user ".$v_user." json", $output, $return_var);
             if ($return_var == 0) {
                 $data = json_decode(implode('', $output), true);
@@ -36,6 +37,9 @@ if (isset($_SESSION['user'])) {
                 unset($_SESSION['_sf2_attributes']);
                 unset($_SESSION['_sf2_meta']);
                 header('Location: /login/');
+            } else {
+                # User doesn't exists
+                header('Location: /');
             }
         }
         exit;
@@ -50,24 +54,24 @@ if (isset($_SESSION['user'])) {
         }
 
         // Obtain account properties
-        $v_user = escapeshellarg($_SESSION[(($_SESSION['userContext'] === 'admin') && (isset($_SESSION['look']))) ? 'look' : 'user']);
+        $v_user = quoteshellarg($_SESSION[(($_SESSION['userContext'] === 'admin') && (isset($_SESSION['look']))) ? 'look' : 'user']);
 
         exec(HESTIA_CMD . 'v-list-user ' . $v_user . ' json', $output, $return_var);
         $data = json_decode(implode('', $output), true);
         unset($output);
 
         // Determine package features and land user at the first available page
-        if ($data[$user]['WEB_DOMAINS'] !== '0') {
+        if ($data[$user_plain]['WEB_DOMAINS'] !== '0') {
             header('Location: /list/web/');
-        } elseif ($data[$user]['DNS_DOMAINS'] !== '0') {
+        } elseif ($data[$user_plain]['DNS_DOMAINS'] !== '0') {
             header('Location: /list/dns/');
-        } elseif ($data[$user]['MAIL_DOMAINS'] !== '0') {
+        } elseif ($data[$user_plain]['MAIL_DOMAINS'] !== '0') {
             header('Location: /list/mail/');
-        } elseif ($data[$user]['DATABASES'] !== '0') {
+        } elseif ($data[$user_plain]['DATABASES'] !== '0') {
             header('Location: /list/db/');
-        } elseif ($data[$user]['CRON_JOBS'] !== '0') {
+        } elseif ($data[$user_plain]['CRON_JOBS'] !== '0') {
             header('Location: /list/cron/');
-        } elseif ($data[$user]['BACKUPS'] !== '0') {
+        } elseif ($data[$user_plain]['BACKUPS'] !== '0') {
             header('Location: /list/backup/');
         } else {
             header('Location: /error/');
@@ -88,7 +92,7 @@ function authenticate_user($user, $password, $twofa = '')
 {
     unset($_SESSION['login']);
     if (verify_csrf($_POST, true)) {
-        $v_user = escapeshellarg($user);
+        $v_user = quoteshellarg($user);
         $ip = $_SERVER['REMOTE_ADDR'];
         $user_agent = $_SERVER['HTTP_USER_AGENT'];
         if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
@@ -96,16 +100,23 @@ function authenticate_user($user, $password, $twofa = '')
                 $ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
             }
         }
-        $v_ip = escapeshellarg($ip);
-        $v_user_agent = escapeshellarg($user_agent);
+        $v_ip = quoteshellarg($ip);
+        $v_user_agent = quoteshellarg($user_agent);
 
         // Get user's salt
         $output = '';
         exec(HESTIA_CMD . 'v-get-user-salt ' . $v_user . ' ' . $v_ip . ' json', $output, $return_var);
         $pam = json_decode(implode('', $output), true);
+        unset($output);
         if ($return_var > 0) {
             sleep(2);
-            $error = '<a class="error">' . _('Invalid username or password') . '</a>';
+            if ($return_var == 5) {
+                $error = '<a class="error">' . _('Account has been suspended') . '</a>';
+            } elseif ($return_var == 1) {
+                $error = '<a class="error">' . _('Unsupported hash method') . '</a>';
+            } else {
+                $error = '<a class="error">' . _('Invalid username or password') . '</a>';
+            }
             return $error;
         } else {
             $salt = $pam[$user]['SALT'];
@@ -117,6 +128,15 @@ function authenticate_user($user, $password, $twofa = '')
             if ($method == 'sha-512') {
                 $hash = crypt($password, '$6$rounds=5000$' . $salt . '$');
                 $hash = str_replace('$rounds=5000', '', $hash);
+            }
+            if ($method == 'yescrypt') {
+                $fp = tmpfile();
+                $v_password = stream_get_meta_data($fp)['uri'];
+                fwrite($fp, $password."\n");
+                exec(HESTIA_CMD . 'v-check-user-password '. $v_user.' '. quoteshellarg($v_password). ' '.$v_ip.' yes', $output, $return_var);
+                $hash = $output[0];
+                fclose($fp);
+                unset($output,$fp, $v_password);
             }
             if ($method == 'des') {
                 $hash = crypt($password, $salt);
@@ -138,7 +158,7 @@ function authenticate_user($user, $password, $twofa = '')
             if ($return_var > 0) {
                 sleep(2);
                 $error = '<a class="error">' . _('Invalid username or password') . '</a>';
-                $v_session_id = escapeshellarg($_POST['token']);
+                $v_session_id = quoteshellarg($_POST['token']);
                 exec(HESTIA_CMD . 'v-log-user-login ' . $v_user . ' ' . $v_ip . ' failed ' . $v_session_id . ' ' . $v_user_agent, $output, $return_var);
                 return $error;
             } else {
@@ -150,7 +170,7 @@ function authenticate_user($user, $password, $twofa = '')
                 if ($data[$user]['LOGIN_DISABLED'] === 'yes') {
                     sleep(2);
                     $error = '<a class="error">' . _('Invalid username or password') . '</a>';
-                    $v_session_id = escapeshellarg($_POST['token']);
+                    $v_session_id = quoteshellarg($_POST['token']);
                     exec(HESTIA_CMD . 'v-log-user-login ' . $v_user . ' ' . $v_ip . ' failed ' . $v_session_id . ' ' . $v_user_agent .' yes "Login disabled for this user"', $output, $return_var);
                     return $error;
                 }
@@ -161,7 +181,7 @@ function authenticate_user($user, $password, $twofa = '')
                     if (!in_array($ip, $v_login_user_allowed_ips, true)) {
                         sleep(2);
                         $error = '<a class="error">' . _('Invalid username or password') . '</a>';
-                        $v_session_id = escapeshellarg($_POST['token']);
+                        $v_session_id = quoteshellarg($_POST['token']);
                         exec(HESTIA_CMD . 'v-log-user-login ' . $v_user . ' ' . $v_ip . ' failed ' . $v_session_id . ' ' . $v_user_agent .' yes "Ip not in allowed list"', $output, $return_var);
                         return $error;
                     }
@@ -175,7 +195,7 @@ function authenticate_user($user, $password, $twofa = '')
                         $_SESSION['login']['password'] = $password;
                         return false;
                     } else {
-                        $v_twofa = escapeshellarg($twofa);
+                        $v_twofa = quoteshellarg($twofa);
                         exec(HESTIA_CMD .'v-check-user-2fa '.$v_user.' '.$v_twofa, $output, $return_var);
                         unset($output);
                         if ($return_var > 0) {
@@ -183,7 +203,7 @@ function authenticate_user($user, $password, $twofa = '')
                             $error = '<a class="error">' ._('Invalid or missing 2FA token') . '</a>';
                             $_SESSION['login']['username'] = $user;
                             $_SESSION['login']['password'] = $password;
-                            $v_session_id = escapeshellarg($_POST['token']);
+                            $v_session_id = quoteshellarg($_POST['token']);
                             if (isset($_SESSION['failed_twofa'])) {
                                 //allow a few failed attemps before start of logging.
                                 if ($_SESSION['failed_twofa']  > 2) {
@@ -203,7 +223,7 @@ function authenticate_user($user, $password, $twofa = '')
                 $_SESSION['user'] = key($data);
                 $v_user = $_SESSION['user'];
                 //log successfull login attempt
-                $v_session_id = escapeshellarg($_POST['token']);
+                $v_session_id = quoteshellarg($_POST['token']);
                 exec(HESTIA_CMD."v-log-user-login ".$v_user." ".$v_ip." success ".$v_session_id." ".$v_user_agent, $output, $return_var);
 
                 $_SESSION['LAST_ACTIVITY'] = time();
@@ -270,10 +290,14 @@ function authenticate_user($user, $password, $twofa = '')
         return false;
     }
 }
-if (preg_match('/^[[:alnum:]][-|\.|_[:alnum:]]{0,28}[[:alnum:]]$/', $_POST['user'])) {
-    $_SESSION['login']['username'] = $_POST['user'];
-} else {
+if (empty($_POST['user'])) {
     $user = '';
+} else {
+    if (preg_match('/^[[:alnum:]][-|\.|_[:alnum:]]{0,28}[[:alnum:]]$/', $_POST['user'])) {
+        $_SESSION['login']['username'] = $_POST['user'];
+    } else {
+        $user = '';
+    }
 }
 if (!empty($_SESSION['login']['username']) && !empty($_SESSION['login']['password']) && !empty($_POST['twofa'])) {
     $error = authenticate_user($_SESSION['login']['username'], $_SESSION['login']['password'], $_POST['twofa']);
@@ -299,7 +323,7 @@ if (empty($_SESSION['language'])) {
 }
 
 // Generate CSRF token
-$token = bin2hex(file_get_contents('/dev/urandom', false, null, 0, 16));
+$token = bin2hex(random_bytes(16));
 $_SESSION['token'] = $token;
 
 require_once('../templates/header.html');

@@ -1,16 +1,14 @@
 #!/bin/bash
 # info: restore user
 # options: USER BACKUP [WEB] [DNS] [MAIL] [DB] [CRON] [UDIR] [NOTIFY]
-# labels: panel
 #
 # example: v-restore-user admin 2019-04-22_01-00-00.tar
 #
-# The function for restoring user from backup. To be able to restore the backup,
+# This function for restoring user from backup. To be able to restore the backup,
 # the archive needs to be placed in /backup.
 
-
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -49,7 +47,6 @@ source $HESTIA/func/syshealth.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
 
-
 #----------------------------------------------------------#
 #                    Verifications                         #
 #----------------------------------------------------------#
@@ -57,7 +54,6 @@ source_conf "$HESTIA/conf/hestia.conf"
 args_usage='USER BACKUP [WEB] [DNS] [MAIL] [DB] [CRON] [UDIR] [NOTIFY]'
 check_args '2' "$#" "$args_usage"
 is_format_valid 'user' 'backup'
-
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -85,10 +81,18 @@ if [ ! -e "$BACKUP/$backup" ]; then
         ftp_download "$backup"
         downloaded='yes'
     fi
+    if [[ "$BACKUP_SYSTEM" =~ "b2" ]] && [ -z "$downloaded" ]; then
+        b2_download "$backup"
+        downloaded='yes'
+    fi
     if [ -z "$downloaded" ]; then
         check_result "$E_NOTEXIST" "backup file $backup doesn't exist in '${BACKUP}' folder"
     fi
 fi
+
+if [ ! -e "$BACKUP/$backup" ]; then 
+   check_result "$E_NOTEXIST" "backup file $backup doesn't exist in '${BACKUP}' folder"
+fi 
 
 # Checking user existence on the server
 check_user=$(is_object_valid 'user' 'USER' "$user")
@@ -287,6 +291,13 @@ if [ "$web" != 'no' ] && [ -n "$WEB_SYSTEM" ]; then
             if [ -n "$check_backend_tpl" ]; then
                 BACKEND='default'
             fi
+            
+            if [ -n "$CUSTOM_DOCROOT" ]; then
+               CUSTOM_DOCROOT=$(echo "$CUSTOM_DOCROOT" | sed -e "s|/home/${old_user}/web/|/home/${user}/web/")
+            fi
+            if [ -n "$CUSTOM_PHPROOT" ]; then
+               CUSTOM_PHPROOT=$(echo "$CUSTOM_PHPROOT" | sed -e "s|/home/${old_user}/web/|/home/${user}/web/")
+            fi
 
             # Converting FTP users
             if [ -n "$FTP_USER" ]; then
@@ -310,7 +321,7 @@ if [ "$web" != 'no' ] && [ -n "$WEB_SYSTEM" ]; then
                     done
                 fi
             fi
-            
+
             # Merging web.conf keys
             str="DOMAIN='$domain' IP='$IP' IP6='$IP6' ALIAS='$ALIAS'"
             str="$str CUSTOM_DOCROOT='$CUSTOM_DOCROOT' CUSTOM_PHPROOT='$CUSTOM_PHPROOT'"
@@ -331,8 +342,25 @@ if [ "$web" != 'no' ] && [ -n "$WEB_SYSTEM" ]; then
                 $BIN/v-add-web-domain-backend $user $domain $BACKEND
             fi
         fi
-                
-        # Rebuilding vhost
+        
+        # Restoring custom user config
+        # Except certificates, .conf files
+        if [ ! -d "$HOMEDIR/$user/conf/web/$domain/" ]; then
+            mkdir -p $HOMEDIR/$user/conf/web/$domain/
+        fi
+        for file in $tmpdir/web/$domain/conf/*; do 
+            if [[ "$file" == *.ca ]] || [[ "$file" == *.crt ]]  || [[ "$file" == *.key ]]  || [[ "$file" == *.pem ]]  || [[ "$file" == *.conf ]]; then
+               continue;
+            fi
+            if grep "fastcgi_pass" file; then 
+               # Do not allow to run php under a different user
+               continue;
+            fi 
+            filename=$(basename $file) 
+            cp -f "$file" "$HOMEDIR/$user/conf/web/$domain/$filename"
+        done
+        
+        # Rebuilding vhost to prevent user overwrite default config changes not ideal 
         rebuild_web_domain_conf
         
         # Restoring web domain data
@@ -750,9 +778,11 @@ if [ "$db" != 'no' ] && [ -n "$DB_SYSTEM" ]; then
         # Importing database dump
         database_dump="$tmpdir/db/$database/$database.$TYPE.sql"
         case $TYPE in
-            mysql) rebuild_mysql_database;
+            mysql) delete_mysql_database
+                   rebuild_mysql_database;
                    import_mysql_database $database_dump ;;
-            pgsql) rebuild_pgsql_database;
+            pgsql) delete_pgsql_database
+                   rebuild_pgsql_database;
                    import_pgsql_database $database_dump ;;
         esac
     done

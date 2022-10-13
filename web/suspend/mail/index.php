@@ -1,4 +1,5 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
 // Init
 error_reporting(null);
@@ -11,9 +12,8 @@ verify_csrf($_GET);
 
 // Mail domain
 if ((!empty($_GET['domain'])) && (empty($_GET['account']))) {
-    $v_username = escapeshellarg($user);
-    $v_domain = escapeshellarg($_GET['domain']);
-    exec(HESTIA_CMD."v-suspend-mail-domain ".$v_username." ".$v_domain, $output, $return_var);
+    $v_domain = quoteshellarg($_GET['domain']);
+    exec(HESTIA_CMD."v-suspend-mail-domain ".$user." ".$v_domain, $output, $return_var);
     check_return_code($return_var, $output);
     unset($output);
     $back=getenv("HTTP_REFERER");
@@ -27,10 +27,10 @@ if ((!empty($_GET['domain'])) && (empty($_GET['account']))) {
 
 // Mail account
 if ((!empty($_GET['domain'])) && (!empty($_GET['account']))) {
-    $v_username = escapeshellarg($user);
-    $v_domain = escapeshellarg($_GET['domain']);
-    $v_account = escapeshellarg($_GET['account']);
-    exec(HESTIA_CMD."v-suspend-mail-account ".$v_username." ".$v_domain." ".$v_account, $output, $return_var);
+    $v_username = quoteshellarg($user);
+    $v_domain = quoteshellarg($_GET['domain']);
+    $v_account = quoteshellarg($_GET['account']);
+    exec(HESTIA_CMD."v-suspend-mail-account ".$user." ".$v_domain." ".$v_account, $output, $return_var);
     check_return_code($return_var, $output);
     unset($output);
     $back = $_SESSION['back'];

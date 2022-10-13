@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'FIREWALL';
 
@@ -17,6 +17,7 @@ if ($_SESSION['userContext'] != 'admin') {
 exec(HESTIA_CMD."v-list-firewall-ipset 'json'", $output, $return_var);
 check_return_code($return_var, $output);
 $data = json_decode(implode('', $output), true);
+unset($output);
 
 $ipset_lists=[];
 foreach ($data as $key => $value) {
@@ -60,14 +61,14 @@ if (!empty($_POST['ok'])) {    // Check token
     }
 
     // Protect input
-    $v_action = escapeshellarg($_POST['v_action']);
-    $v_protocol = escapeshellarg($_POST['v_protocol']);
+    $v_action = quoteshellarg($_POST['v_action']);
+    $v_protocol = quoteshellarg($_POST['v_protocol']);
     $v_port = str_replace(" ", ",", $_POST['v_port']);
     $v_port = preg_replace('/\,+/', ',', $v_port);
     $v_port = trim($v_port, ",");
-    $v_port = escapeshellarg($v_port);
-    $v_ip = escapeshellarg($_POST['v_ip']);
-    $v_comment = escapeshellarg($_POST['v_comment']);
+    $v_port = quoteshellarg($v_port);
+    $v_ip = quoteshellarg($_POST['v_ip']);
+    $v_comment = quoteshellarg($_POST['v_comment']);
 
     // Add firewall rule
     if (empty($_SESSION['error_msg'])) {
@@ -83,6 +84,22 @@ if (!empty($_POST['ok'])) {    // Check token
         unset($v_ip);
         unset($v_comment);
     }
+}
+
+if (empty($v_action)) {
+    $v_action = '';
+}
+if (empty($v_protocol)) {
+    $v_protocol = '';
+}
+if (empty($v_port)) {
+    $v_port = '';
+}
+if (empty($v_ip)) {
+    $v_ip = '';
+}
+if (empty($v_comment)) {
+    $v_comment = '';
 }
 
 // Render

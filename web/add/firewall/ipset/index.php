@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'FIREWALL';
 
@@ -51,7 +51,7 @@ if (!empty($_POST['ok'])) {
 
     // Add firewall ipset list
     if (empty($_SESSION['error_msg'])) {
-        exec(HESTIA_CMD."v-add-firewall-ipset ".escapeshellarg($v_ipname)." ".escapeshellarg($v_datasource)." ".escapeshellarg($v_ipver)." ".escapeshellarg($v_autoupdate), $output, $return_var);
+        exec(HESTIA_CMD."v-add-firewall-ipset ".quoteshellarg($v_ipname)." ".quoteshellarg($v_datasource)." ".quoteshellarg($v_ipver)." ".quoteshellarg($v_autoupdate), $output, $return_var);
         check_return_code($return_var, $output);
         unset($output);
     }
@@ -60,6 +60,15 @@ if (!empty($_POST['ok'])) {
     if (empty($_SESSION['error_msg'])) {
         $_SESSION['ok_msg'] = _('IPSET_CREATED_OK');
     }
+}
+if (empty($v_ipname)) {
+    $v_ipname = '';
+}
+if (empty($v_datasource)) {
+    $v_datasource = '';
+}
+if (empty($v_ipver)) {
+    $v_ipver = '';
 }
 
 // Render

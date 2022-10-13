@@ -1,5 +1,4 @@
 <?php
-#error_reporting(NULL);
 $TAB = 'USER';
 
 // Main include
@@ -12,7 +11,7 @@ if ($_SESSION['userContext'] === 'user') {
 }
 
 // Do not show the users list if user is impersonating another user
-if (isset($_SESSION['look'])) {
+if (!empty($_SESSION['look'])) {
     header("Location: /login/");
     exit;
 }

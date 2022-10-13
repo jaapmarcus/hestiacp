@@ -1,9 +1,7 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-// Init
-error_reporting(null);
 ob_start();
-session_start();
 
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
@@ -43,11 +41,19 @@ if ($_SESSION['userContext'] === 'admin') {
         switch ($action) {
             case 'delete': $cmd='v-delete-mail-domain';
                 break;
+            case 'suspend': $cmd='v-suspend-mail-domain';
+                break;
+            case 'unsuspend': $cmd='v-unsuspend-mail-domain';
+                break;
             default: header("Location: /list/mail/"); exit;
         }
     } else {
         switch ($action) {
             case 'delete': $cmd='v-delete-mail-account';
+                break;
+            case 'suspend': $cmd='v-suspend-mail-account';
+                break;
+            case 'unsuspend': $cmd='v-unsuspend-mail-account';
                 break;
             default: header("Location: /list/mail/?domain=".$domain); exit;
         }
@@ -58,15 +64,15 @@ if ($_SESSION['userContext'] === 'admin') {
 if (empty($account)) {
     foreach ($domain as $value) {
         // Mail
-        $value = escapeshellarg($value);
+        $value = quoteshellarg($value);
         exec(HESTIA_CMD.$cmd." ".$user." ".$value, $output, $return_var);
         $restart = 'yes';
     }
 } else {
     foreach ($account as $value) {
         // Mail Account
-        $value = escapeshellarg($value);
-        $dom = escapeshellarg($domain);
+        $value = quoteshellarg($value);
+        $dom = quoteshellarg($domain);
         exec(HESTIA_CMD.$cmd." ".$user." ".$dom." ".$value, $output, $return_var);
         $restart = 'yes';
     }

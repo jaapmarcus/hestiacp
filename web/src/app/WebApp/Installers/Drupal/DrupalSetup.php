@@ -26,15 +26,35 @@ class DrupalSetup extends BaseSetup {
         'resources' => [
            'composer' => [ 'src' => 'drupal/recommended-project', 'dst' => '/' ],
         ],
+        'server' => [
+            'nginx' => [
+                'template' => 'drupal-composer'
+            ],
+            'php' => [ 
+                'supported' => [ '8.0','8.1' ],
+            ]
+        ],
     ];
 
     public function install(array $options=null) : bool
     {
         parent::install($options);
-        $this->appcontext->runComposer(["require", "-d " . $this->getDocRoot(), "drush/drush:^10"], $result);
+        parent::setup($options);
         
+        $this->appcontext->runComposer(["require", "-d " . $this->getDocRoot(), "drush/drush:^10"]);
+        
+        $htaccess_rewrite = '
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ web/$1 [L]
+</IfModule>';
+        
+        $tmp_configpath = $this->saveTempFile($htaccess_rewrite);
+        $this->appcontext->runUser('v-move-fs-file',[$tmp_configpath, $this->getDocRoot(".htaccess")], $result);
+        
+       
         $this -> appcontext -> runUser('v-run-cli-cmd', [
-            'php',
+            "/usr/bin/php".$options['php_version'],
             $this -> getDocRoot('/vendor/drush/drush/drush'), 
             'site-install',
             'standard',

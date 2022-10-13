@@ -70,7 +70,7 @@ function validate_web_domain() {
 
     # Test HTTP
     # Curl hates UTF domains so convert them to ascci. 
-    domain_idn=$(idn -a $domain)
+    domain_idn=$(idn2 $domain)
     run curl --location --silent --show-error --insecure --resolve "${domain_idn}:80:${domain_ip}" "http://${domain_idn}/${webpath}"
     assert_success
     assert_output --partial "$webproof"
@@ -262,7 +262,7 @@ function check_ip_not_banned(){
 #                           IP                             #
 #----------------------------------------------------------#
 
-@test "Check reverse Dns validation" {
+@test "RDNS: Check reverse Dns validation" {
     # 1. PTR record for a IP should return a hostname(reverse) which in turn must resolve to the same IP addr(forward). (Full circle)
     #  `-> not implemented in `is_ip_rdns_valid` yet and also not tested here
     # 2. Reject rPTR records that match generic dynamic IP pool patterns
@@ -314,49 +314,62 @@ function check_ip_not_banned(){
 #                         User                             #
 #----------------------------------------------------------#
 
-@test "Add new user" {
+@test "User: Add new user" {
     run v-add-user $user $user $user@hestiacp.com default "Super Test"
     assert_success
     refute_output
 }
 
-@test "Change user password" {
-    run v-change-user-password "$user" t3st-p4ssw0rd
+@test "User: Change user password" {
+    run v-change-user-password "$user" "$userpass2" 
     assert_success
     refute_output
 }
 
-@test "Change user email" {
+@test "User: Change user email" {
     run v-change-user-contact "$user" tester@hestiacp.com
     assert_success
     refute_output
 }
 
-@test "Change user contact invalid email " {
+@test "User: Change user contact invalid email " {
     run v-change-user-contact "$user" testerhestiacp.com
     assert_failure $E_INVALID
     assert_output --partial 'Error: invalid email format'
 }
 
-@test "Change user name" {
+@test "User: Change user name" {
     run v-change-user-name "$user" "New name"
     assert_success
     refute_output
 }
 
-@test "Change user shell" {
+@test "User: Change user shell" {
     run v-change-user-shell $user bash
     assert_success
     refute_output
+    
+    run stat -c '%U' /home/$user
+    assert_output --partial "$user"
 }
 
-@test "Change user invalid shell" {
+@test "User: Change user invalid shell" {
     run v-change-user-shell $user bashinvalid
     assert_failure $E_INVALID
     assert_output --partial 'shell bashinvalid is not valid'
 }
 
-@test "Change user default ns" {
+@test "User: Change user nologin" {
+    run v-change-user-shell $user nologin
+    assert_success
+    refute_output
+    
+    run stat -c '%U' /home/$user
+    assert_output --partial 'root'
+}
+
+
+@test "User: Change user default ns" {
     run v-change-user-ns $user ns0.com ns1.com ns2.com ns3.com
     assert_success
     refute_output
@@ -366,64 +379,116 @@ function check_ip_not_banned(){
     assert_output --partial 'ns0.com'
 }
 
-@test "Change user language" {
+@test "User: Change user language" {
   run v-change-user-language $user "nl"
   assert_success
   refute_output
 }
 
-@test "Change user language (Does not exists)" {
+@test "User: Change user language (Does not exists)" {
   run v-change-user-language $user "aa"
   assert_failure $E_NOTEXIST
 }
 
-@test "Change user sort order" {
+@test "User: Change user sort order" {
   run v-change-user-sort-order $user "name"
   assert_success
   refute_output
 }
 
-@test "Change user theme" {
+@test "User: Change user theme" {
   run v-change-user-theme $user "flat"
   assert_success
   refute_output
 }
 
-@test "Change user theme (Does not exists)" {
+@test "User: Change user theme (Does not exists)" {
   run v-change-user-theme $user "aa"
   assert_failure $E_NOTEXIST
 }
 
-@test "Change user login ip" {
+@test "User: Change user login ip" {
   run v-change-user-config-value $user "LOGIN_USE_IPLIST" "1.2.3.4,1.2.3.5"
   assert_success
   refute_output
 }
 
-@test "Change user login ip (Failed)" {
+@test "User: Change user login ip (Failed)" {
   run v-change-user-config-value $user "LOGIN_USE_IPLIST" "'; echo 'jaap'; echo '"
   assert_failure $E_INVALID
 }
 
-@test "Add user notification" {
+@test "User: Add user notification" {
   run v-add-user-notification $user "Test message" "Message"
   assert_success
   refute_output
 }
-@test "Acknowledge user notification" {
+@test "User: Acknowledge user notification" {
   run v-acknowledge-user-notification $user 1
   assert_success
   refute_output
 }
-@test "List user notification" {
+@test "User: List user notification" {
   run v-list-user-notifications $user csv
   assert_success
   assert_output --partial "1,\"Test message\",\"Message\",yes"
 }
-@test "Delete user notification" {
+@test "User: Delete user notification" {
   run v-delete-user-notification admin 1
   assert_success
   refute_output
+}
+
+@test "User: Get User salt ipv4" {
+  run v-get-user-salt $user 192.168.2.10
+  assert_success
+}
+
+@test "User: Get User salt ipv4 invalid" {
+  run v-get-user-salt $user 192.168.992.10
+  assert_failure $E_INVALID
+}
+
+@test "User: Get User salt ipv6" {
+  run v-get-user-salt $user "21DA:D3:0:2F3B:2AA:FF:FE28:9C5A"
+  assert_success
+}
+
+@test "User: Get User salt ipv6 not exists" {
+  run v-get-user-salt "notexists" "21DA:D3:0:2F3B:2AA:FF:FE28:9C5B"
+  assert_failure $E_PASSWORD
+}
+
+@test "User: Get User salt ipv6 invalid" {
+  run v-get-user-salt "$user" "21DA:D3:0:2F3B:ZZZ:FF:FE28:9C5B"
+  assert_failure $E_INVALID
+}
+
+@test "User: Check user password" {
+  run v-check-user-password $user "$userpass2" 192.168.2.10 'no'
+  assert_success
+}
+
+@test "User: Check user password Incorrect password" {
+  run v-check-user-password $user "$userpass1" 192.168.2.10 'no'
+  assert_failure $E_PASSWORD
+}
+
+@test "User: Check user hash ipv4" {
+  hash=$(v-check-user-password $user "$userpass2" 192.168.2.10 'yes');
+  run v-check-user-hash $user $hash 192.168.2.10
+  assert_success
+}
+
+@test "User: Check user hash ipv6" {
+  hash=$(v-check-user-password $user "$userpass2" 21DA:D3:0:2F3B:2AA:FF:FE28:9C5A 'yes');
+  run v-check-user-hash $user $hash 21DA:D3:0:2F3B:2AA:FF:FE28:9C5A
+  assert_success
+}
+
+@test "User: Check user hash ipv6 incorrect" {
+  run v-check-user-hash $user 'jafawefaweijawe' 21DA:D3:0:2F3B:2AA:FF:FE28:9C5A
+  assert_failure $E_PASSWORD
 }
 
 #----------------------------------------------------------#
@@ -516,7 +581,31 @@ function check_ip_not_banned(){
         [ -f "$a2_rpaf" ] && assert_file_contains "$a2_rpaf" "RPAFproxy_ips.*$ip\b"
         [ -f "$a2_remoteip" ] && assert_file_contains "$a2_remoteip" "RemoteIPInternalProxy $ip\$"
     fi
+    
+}
 
+@test "Ip: [Ubuntu] Netplan file updated" {
+   # Skip if Debian
+   if [ $(lsb_release -s -i) != "Ubuntu" ]; then
+   skip
+   fi
+   
+   # Test will fail if systemd (For example Proxmox) is used for setting ip addresses. How ever there is no "decent" way to check if Netplan is used except via the method used in v-add-sys-ip and there for breaking the reason to test this. How ever if the test used in v-add-sys-ip fails it still should check if it exists!
+  
+   assert_file_exist /etc/netplan/60-hestia.yaml
+   
+   # also check if file contains the newly added ip
+   assert_file_contains /etc/netplan/60-hestia.yaml "$ip"
+}
+
+@test "Ip: [Debian] Netplan file updated" {
+   # Skip with netplan
+   if [ -f /etc/netplan/60-hestia.yaml ]; then
+   skip
+   fi
+   
+   assert_file_exist  /etc/network/interfaces
+   assert_file_contains  /etc/network/interfaces "$ip"
 }
 
 @test "Ip: Add ip (duplicate)" {
@@ -543,14 +632,6 @@ function check_ip_not_banned(){
         local a2_remoteip="/etc/$WEB_SYSTEM/mods-enabled/remoteip.conf"
         [ -f "$a2_remoteip" ] && assert_file_contains "$a2_remoteip" "RemoteIPInternalProxy $ip\$"
     fi
-}
-
-@test "Ip: Change Helo" {
-    local ip="198.18.0.121"
-    run v-change-sys-ip-helo 198.18.0.121 dev.hestiacp.com
-    assert_success
-    refute_output
-    assert_file_contains /etc/exim4/mailhelo.conf "198.18.0.121:dev.hestiacp.com"
 }
 
 @test "Ip: Delete ips" {
@@ -715,7 +796,7 @@ function check_ip_not_banned(){
     if [ "$WEB_SYSTEM" != "nginx" ]; then 
       skip "FastCGI cache is not supported"
     fi
-    run v-delete-fastcgi-cache $user $domain '1m' yes
+    run v-delete-fastcgi-cache $user $domain yes
     assert_success
     refute_output
 }
@@ -756,26 +837,37 @@ function check_ip_not_banned(){
 }
 
 @test "WEB: Add IDN domain ASCII idn-tést.eu" {
- # Expected to fail due to utf exists
- run v-add-web-domain $user $( idn -a idn-tést.eu) 198.18.0.125
- assert_failure $E_EXISTS
-
+   # Expected to fail due to utf exists
+   run v-add-web-domain $user "xn--idn-tst-fya.eu" 198.18.0.125
+   assert_failure $E_EXISTS
 }
+
+
+@test "WEB: Generate Self signed certificate ASCII idn-tést.eu" {
+    run v-generate-ssl-cert "xn--idn-tst-fya.eu" "info@xn--idn-tst-fya.eu" US CA "Orange County" HestiaCP IT "mail.xn--idn-tst-fya.eu"
+    assert_success
+}
+
 
 @test "WEB: Delete IDN domain idn-tést.eu" {
- run v-delete-web-domain $user idn-tést.eu
- assert_success
- refute_output
+   run v-delete-web-domain $user idn-tést.eu
+   assert_success
+   refute_output
 }
  
-@test "WEB: Add IDN domain UTF bløst.com" {
- run v-add-web-domain $user bløst.com 198.18.0.125
- assert_success
- refute_output
+@test "WEB: Add IDN domain UTF bløst.рф" {
+   run v-add-web-domain $user bløst.рф 198.18.0.125
+   assert_success
+   refute_output
 }
 
-@test "WEB: Delete IDN domain bløst.com" {
- run v-delete-web-domain $user bløst.com
+@test "WEB: Generate Self signed certificate ASCII bløst.рф" {
+    run v-generate-ssl-cert "xn--blst-hra.xn--p1ai" "info@xn--blst-hra.xn--p1ai" US CA "Orange County" HestiaCP IT "mail.xn--blst-hra.xn--p1ai"
+    assert_success
+}
+
+@test "WEB: Delete IDN domain bløst.рф" {
+ run v-delete-web-domain $user bløst.рф
  assert_success
  refute_output
 }
@@ -966,6 +1058,30 @@ function check_ip_not_banned(){
     rm $HOMEDIR/$user/web/$multi_domain/public_html/php-test.php
 }
 
+@test "Multiphp: Change backend version - PHP v8.1" {
+    test_phpver='8.1'
+    multi_domain="multiphp.${domain}"
+
+    if [ ! -d "/etc/php/${test_phpver}/fpm/pool.d/" ]; then
+        skip "PHP ${test_phpver} not installed"
+    fi
+
+    run v-change-web-domain-backend-tpl $user $multi_domain 'PHP-8_1' 'yes'
+    assert_success
+    refute_output
+
+    # Changing web backend will create a php-fpm pool config in the corresponding php folder
+    assert_file_exist "/etc/php/${test_phpver}/fpm/pool.d/${multi_domain}.conf"
+
+    # A single php-fpm pool config file must be present
+    num_fpm_config_files="$(find -L /etc/php/ -name "${multi_domain}.conf" | wc -l)"
+    assert_equal "$num_fpm_config_files" '1'
+
+    echo -e "<?php\necho 'hestia-multiphptest:'.PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;" > "$HOMEDIR/$user/web/$multi_domain/public_html/php-test.php"
+    validate_web_domain $user $multi_domain "hestia-multiphptest:$test_phpver" 'php-test.php'
+    rm $HOMEDIR/$user/web/$multi_domain/public_html/php-test.php
+}
+
 @test "Multiphp: Cleanup" {
     multi_domain="multiphp.${domain}"
 
@@ -1083,6 +1199,36 @@ function check_ip_not_banned(){
     refute_output
 }
 
+@test "DNS: Add domain record *.domain.com" {
+    run v-add-dns-record $user $domain '*' A 198.18.0.125 '' 30
+    assert_success
+    refute_output
+}
+
+@test "DNS: Change DNS record" {
+  run v-change-dns-record $user $domain 20 test A 198.18.0.125 "" "" 1500
+  assert_success
+  refute_output
+}
+
+@test "DNS: Change DNS record (no update)" {
+  run v-change-dns-record $user $domain 20 test A 198.18.0.125 "" "" 1500
+  assert_failure $E_EXSIST
+}
+
+@test "DNS: Change DNS record id" {
+  run v-change-dns-record-id $user $domain 20 21
+  assert_success
+  refute_output
+  # Change back
+  run v-change-dns-record-id $user $domain 21 20
+}
+
+@test "DNS: Change DNS record id (no update)" {
+  run v-change-dns-record-id  $user $domain 20 20
+  assert_failure $E_EXSIST
+}
+
 @test "DNS: Delete domain record" {
     run v-delete-dns-record $user $domain 20
     assert_success
@@ -1096,6 +1242,143 @@ function check_ip_not_banned(){
 
 @test "DNS: Change domain expire date" {
     run v-change-dns-domain-exp $user $domain 2020-01-01
+    assert_success
+    refute_output
+}
+
+@test "DNS: Add domain record MX" {
+    run v-add-dns-record $user $domain '@' MX mx.hestiacp.com  '' 50
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestiacp.com."
+    
+    run v-change-dns-record $user $domain 50 '@' MX mx.hestia.com
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestia.com."
+    
+    run v-delete-dns-record $user $domain 50
+    assert_success
+    refute_output
+}
+
+@test "DNS: Add domain record NS" {
+    run v-delete-dns-record $user $domain 50
+    run v-add-dns-record $user $domain '@' NS mx.hestiacp.com  '' 50
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestiacp.com."
+    
+    run v-change-dns-record $user $domain 50 '@' NS mx.hestia.com
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestia.com."
+    
+    run v-delete-dns-record $user $domain 50
+    assert_success
+    refute_output
+}
+
+@test "DNS: Add domain record SRV" {
+    run v-delete-dns-record $user $domain 50
+    run v-add-dns-record $user $domain '_test_domain' SRV mx.hestiacp.com  '' 50
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestiacp.com."
+    
+    run v-change-dns-record $user $domain 50 '_test.domain' SRV mx.hestia.com
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestia.com."
+    
+    run v-delete-dns-record $user $domain 50
+    assert_success
+    refute_output
+}
+
+@test "DNS: Add domain record CNAME" {    
+    run v-delete-dns-record $user $domain 50
+    run v-add-dns-record $user $domain 'mail' CNAME mx.hestiacp.com  '' 50
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestiacp.com."
+    
+    run v-change-dns-record $user $domain 50 'mail' CNAME mx.hestia.com
+    assert_success
+    refute_output
+    
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "mx.hestia.com."
+    
+    run v-delete-dns-record $user $domain 50
+    assert_success
+    refute_output
+}
+
+@test "DNS: Check txt dns records type1" {
+    [ -z "$DNS_SYSTEM" ] && skip
+
+    run v-delete-dns-record $user $domain 50
+
+    record1_in='v=DMARC1; p=quarantine; pct=100'
+    record2_in='v=DMARC1; p=quarantine; pct=90'
+        
+    record1_out='"v=DMARC1; p=quarantine; pct=100"'
+    record2_in='"v=DMARC1; p=quarantine; pct=90"'
+
+    # Test Create
+    run v-add-dns-record $user $domain 'test-long-txt' 'TXT' "$record1_in" '' 50
+    assert_success
+    refute_output
+
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "$record1_out"
+
+    # Test Edit
+    run v-change-dns-record $user $domain 50 'test-long-txt' 'TXT' "$record2_in"
+    assert_success
+    refute_output
+
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "$record2_out"
+
+    # Test Cleanup
+    run v-delete-dns-record $user $domain 50
+    assert_success
+    refute_output
+}
+
+@test "DNS: Check txt dns records type2" {
+    [ -z "$DNS_SYSTEM" ] && skip
+
+    run v-delete-dns-record $user $domain 50
+
+    record3_in='k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4+VEVsoTbl6tYLJlhozqAGju3IgpSVdBAS5LMyzpHP8/L0/PlyVRJnm2xECjVk3DRqCmelyIvmraw1VtFz2aH6DRlDhHsZghj1DmGhwN+7NkwIb4hEvmytMVAz1WyiLH6Rm6Iemm/ZCt1RhrAMUYLxHA9mJgky76YCcf8/cX35xC+1vd4a5U6YofAZeVP9DBvVgQ8ung4gVrOrQrXkU8QfVNAoXz5pfJo74GB7woIBFhZXsU6SKho7KnzT5inVCIOtWp7L5hyEnbySWQPHT2vAMCCAe2AY/Vv0N3HW14o8P3b4A6OU920wFB2kA7pkQNzO5OwH+HSttwG0PaIiQxYQIDAQAB'
+    record3_out='"k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4+VEVsoTbl6tYLJlhozqAGju3IgpSVdBAS5LMyzpHP8/L0/PlyVRJnm2xECjVk3DRqCmelyIvmraw1VtFz2aH6DRlDhHsZghj1DmGhwN+7NkwIb4hEvmytMVAz1WyiLH6Rm6Iemm/ZCt1RhrAMUYLxHA9mJgky76YCcf8/cX35xC+1vd4a5U6YofAZeVP9DBvVgQ8ung4g""VrOrQrXkU8QfVNAoXz5pfJo74GB7woIBFhZXsU6SKho7KnzT5inVCIOtWp7L5hyEnbySWQPHT2vAMCCAe2AY/Vv0N3HW14o8P3b4A6OU920wFB2kA7pkQNzO5OwH+HSttwG0PaIiQxYQIDAQAB"'
+    
+    record4_in='k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4+VEVsoTbl6tYLJlhozqAGju3IgpSVdBAS5LMyzpHP8/L0/PlyVRJnm2xECjVk3DRqCmelyIvmraw1VtFz2aH6DRlDhHsZghj1DmGhwN+7NkwIb4hEvmytMVAz1WyiLH6Rm6Iemm/ZCt1RhrAMUYLxHA9mJgky76YCcf8/cX35xC+1vd4a5U6YofAZeVP9DBvVgQ8ung4gVrOrQrXkU8QfVNAoXz5pfJo74GB7woIBFhZXsU6SKho7KnzT5inVCIOtWp7L5hyEnbySWQPHT2vAMCCAe2AY/Vv0N3HW14o8P3b4A6OU920wFB2kA7pkQNzO5OwH+HSttwG0PaIiQxYQIDAQA4'
+    record4_out='"k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4+VEVsoTbl6tYLJlhozqAGju3IgpSVdBAS5LMyzpHP8/L0/PlyVRJnm2xECjVk3DRqCmelyIvmraw1VtFz2aH6DRlDhHsZghj1DmGhwN+7NkwIb4hEvmytMVAz1WyiLH6Rm6Iemm/ZCt1RhrAMUYLxHA9mJgky76YCcf8/cX35xC+1vd4a5U6YofAZeVP9DBvVgQ8ung4g""VrOrQrXkU8QfVNAoXz5pfJo74GB7woIBFhZXsU6SKho7KnzT5inVCIOtWp7L5hyEnbySWQPHT2vAMCCAe2AY/Vv0N3HW14o8P3b4A6OU920wFB2kA7pkQNzO5OwH+HSttwG0PaIiQxYQIDAQA4"'
+
+    # Test Create
+    run v-add-dns-record $user $domain 'test-long-txt' 'TXT' "$record3_in" '' 50
+    assert_success
+    refute_output
+
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "$record3_out"
+
+    # Test Edit
+    run v-change-dns-record $user $domain 50 'test-long-txt' 'TXT' "$record4_in"
+    assert_success
+    refute_output
+
+    assert_file_contains "$HOMEDIR/$user/conf/dns/${domain}.db" "$record4_out"
+
+    # Test Cleanup
+    run v-delete-dns-record $user $domain 50
     assert_success
     refute_output
 }
@@ -1174,6 +1457,10 @@ function check_ip_not_banned(){
     validate_mail_domain $user $domain
     
     validate_webmail_domain $user $domain 'Success!'
+    
+    run v-add-mail-domain-webmail $user $domain "roundcube" "yes"
+    assert_success
+    refute_output
 } 
 
 @test "MAIL: Add domain (duplicate)" {
@@ -1182,14 +1469,32 @@ function check_ip_not_banned(){
 }
 
 @test "MAIL: Add account" {
-    run v-add-mail-account $user $domain test t3st-p4ssw0rd
+    run v-add-mail-account $user $domain test "$userpass2"
     assert_success
+    assert_file_contains /etc/exim4/domains/$domain/limits "test@$domain"
     refute_output
 }
 
 @test "MAIL: Add account (duplicate)" {
-    run v-add-mail-account $user $domain test t3st-p4ssw0rd
+    run v-add-mail-account $user $domain test "$userpass2"
     assert_failure $E_EXISTS
+}
+
+@test "MAIL: change mail account password" {
+  run curl -k -X POST -d "email=test@$domain&password=$userpass2&new=123456" https://localhost:8083/reset/mail/ 
+  assert_success
+  assert_output --partial "==ok=="
+}
+
+@test "MAIL: change mail account password (Incorrect PW)" {
+  run curl -k -X POST -d "email=test@$domain&password=$userpass2&new=123456" https://localhost:8083/reset/mail/ 
+  assert_success
+  assert_output --partial "error"
+}
+
+@test "MAIL: Change rate limit" {
+    run v-change-mail-account-rate-limit $user $domain test 10
+    assert_file_contains /etc/exim4/domains/$domain/limits "test@$domain:10"
 }
 
 @test "MAIL: Delete account" {
@@ -1208,6 +1513,49 @@ function check_ip_not_banned(){
     assert_success
     refute_output
 }
+
+@test "MAIL: Delete DKIM" {
+    run v-delete-mail-domain-dkim $user $domain
+    assert_success
+    refute_output
+
+    run grep "RECORD='_domainkey'" "${HESTIA}/data/users/${user}/dns/${domain}.conf"
+    assert_failure
+    refute_output
+
+    run grep "RECORD='mail._domainkey'" "${HESTIA}/data/users/${user}/dns/${domain}.conf"
+    assert_failure
+    refute_output
+}
+
+@test "MAIL: Add DKIM" {
+    run v-add-mail-domain-dkim $user $domain
+    assert_success
+    refute_output
+
+    run grep "RECORD='_domainkey'" "${HESTIA}/data/users/${user}/dns/${domain}.conf"
+    assert_success
+    assert_output --partial "RECORD='_domainkey' TYPE='TXT'"
+
+    run grep "RECORD='mail._domainkey'" "${HESTIA}/data/users/${user}/dns/${domain}.conf"
+    assert_success
+    assert_output  --partial "RECORD='mail._domainkey' TYPE='TXT'"
+}
+
+@test "MAIL: Delete DKIM but preserve custom dkim records" {
+    run v-add-dns-record $user $domain 'k2._domainkey' 'TXT' 'v=DKIM1; k=rsa; p=123456'
+    assert_success
+    refute_output
+
+    run v-delete-mail-domain-dkim $user $domain
+    assert_success
+    refute_output
+
+    run grep "RECORD='k2._domainkey'" "${HESTIA}/data/users/${user}/dns/${domain}.conf"
+    assert_success
+    assert_output --partial "RECORD='k2._domainkey' TYPE='TXT'"
+}
+
 
 #----------------------------------------------------------#
 #    Limit possibilities adding different owner domain     #
@@ -1308,10 +1656,6 @@ function check_ip_not_banned(){
 
 @test "Allow Users: user2 can add user.user2.com again" {
     run v-add-web-domain $user2 $subdomain
-    assert_success
-    refute_output
-
-    run v-delete-user $user2
     assert_success
     refute_output
 }
@@ -1545,6 +1889,37 @@ echo   "1.2.3.4" >> $HESTIA/data/firewall/excludes.conf
   check_ip_not_banned '1.2.3.4' 'HESTIA'
 }
 
+@test "Test create ipset" {
+  run v-add-firewall-ipset "blacklist" "script:/usr/local/hestia/install/common/firewall/ipset/blacklist.sh" v4 yes
+  assert_success
+  refute_output
+}
+
+@test "Create firewall with Ipset" {
+  run v-add-firewall-rule 'DROP' 'ipset:blacklist' '8083,22' 'TCP' 'Test'
+  assert_success
+  refute_output
+}
+
+@test "List firewall rules" {
+  run v-list-firewall csv
+  assert_success
+  assert_line --partial '11,DROP,TCP,8083,22,ipset:blacklist'
+  
+}
+
+@test "Delete firewall with Ipset" {
+  run v-delete-firewall-rule '11'
+  assert_success
+  refute_output
+}
+
+@test "Test delete ipset" {
+  run v-delete-firewall-ipset "blacklist" 
+  assert_success
+  refute_output
+}
+
 #----------------------------------------------------------#
 #                         PACKAGE                          #
 #----------------------------------------------------------#
@@ -1615,21 +1990,54 @@ echo   "1.2.3.4" >> $HESTIA/data/firewall/excludes.conf
 #                         Backup user                      #
 #----------------------------------------------------------#
 
-@test "Backup user" {
+@test "Backup: Backup user" {
   run v-backup-user $user
   assert_success
 }
 
-@test "List Backups" {
+@test "Backup: List Backups" {
   run v-list-user-backups $user plain
   assert_success
   assert_output --partial "$user"
 }
 
-@test "Delete backups" {
+@test "Backup: Delete backups" {
   run v-delete-user-backup $user $(v-list-user-backups $user plain | cut -f1)
   assert_success
   run rm /backup/$user.log
+}
+
+#----------------------------------------------------------#
+#                  Change owner scripts                    #
+#----------------------------------------------------------#
+
+@test "Change: Change domain owner" {
+    run v-change-domain-owner $domain $user2 
+    assert_success
+    
+    run v-restart-web
+    run v-restart-proxy
+     
+}
+
+@test "Change: Add database" {
+    run v-add-database $user database dbuser 1234 mysql
+    assert_success
+    refute_output
+    # validate_database mysql database_name database_user password
+    validate_database mysql $database $dbuser 1234
+}
+
+@test "Change: Change database owner" {
+    run v-change-database-owner $database $user2 
+    assert_success
+    validate_database mysql test-5286_database test-5286_dbuser 1234
+}
+
+@test "Change: Delete database" {
+    run v-delete-database $user2 test-5286_database
+    assert_success
+    refute_output
 }
 
 #----------------------------------------------------------#
@@ -1637,19 +2045,19 @@ echo   "1.2.3.4" >> $HESTIA/data/firewall/excludes.conf
 #----------------------------------------------------------#
 
 @test "Mail: Delete domain" {
-    run v-delete-mail-domain $user $domain
+    run v-delete-mail-domain $user2 $domain
     assert_success
     refute_output
 }
 
 @test "DNS: Delete domain" {
-    run v-delete-dns-domain $user $domain
+    run v-delete-dns-domain $user2 $domain
     assert_success
     refute_output
 }
 
 @test "WEB: Delete domain" {
-    run v-delete-web-domain $user $domain
+    run v-delete-web-domain $user2 $domain
     assert_success
     refute_output
 }
@@ -1659,6 +2067,14 @@ echo   "1.2.3.4" >> $HESTIA/data/firewall/excludes.conf
     assert_success
     refute_output
 }
+
+@test "Delete user2" {
+    run v-delete-user $user2
+    assert_success
+    refute_output
+}
+
+
 
 @test "Ip: Delete the test IP" {
     run v-delete-sys-ip 198.18.0.125

@@ -40,7 +40,7 @@ $(document).ready(function(){
 
 
             // CREATE BUTTON
-              
+
             $('.l-sort__create-btn').hover(function(){
               $(".l-sort__create-btn").append("<div id='add-icon'></div>");
               $(".l-sort__create-btn").append("<div id='tooltip'>"+$('.l-sort__create-btn').attr('title').replace(' ','&nbsp;')+"</div>");
@@ -48,10 +48,10 @@ $(document).ready(function(){
               $("#add-icon").remove();
               $("#tooltip").remove();
             });
-            
-              
+
+
             // SEARCH BOX
-                
+
             $('.l-sort-toolbar__search, .l-sort-toolbar__search-box .search-input').hover(function(){
               clearTimeout(VE.tmp.search_display_interval);
               clearTimeout(VE.tmp.search_hover_interval);
@@ -90,20 +90,20 @@ $(document).ready(function(){
 
               $('.pause').click(function(){
                 VE.helpers.refresh_timer.stop();
-                $('.pause').addClass('hidden');
-                $('.play').removeClass('hidden');
+                $('.pause').addClass('u-hidden');
+                $('.play').removeClass('u-hidden');
                 $('.refresh-timer').addClass('paused');
               });
 
               $('.play').click(function(){
                 VE.helpers.refresh_timer.start();
-                $('.pause').removeClass('hidden');
-                $('.play').addClass('hidden');
+                $('.pause').removeClass('u-hidden');
+                $('.play').addClass('u-hidden');
                 $('.refresh-timer').removeClass('paused');
               });
             }
-            
-            
+
+
             // SORTING
 
             $('#vstobjects input, #vstobjects select, #vstobjects textarea').change(function(){VE.tmp.form_changed=1});
@@ -117,7 +117,7 @@ $(document).ready(function(){
               $(this).addClass('active');
               VE.tmp.sort_par = $(this).parent('li').attr('entity');
               VE.tmp.sort_as_int = $(this).parent('li').attr('sort_as_int');
-              VE.tmp.sort_direction = $(this).hasClass('up')*1 || -1; 
+              VE.tmp.sort_direction = $(this).hasClass('up')*1 || -1;
 
               $('.l-sort .sort-by span b').html($(this).parent('li').find('.name').html());
               $('.l-sort .sort-by i').removeClass('fa-sort-alpha-up fa-sort-alpha-down');
@@ -129,7 +129,7 @@ $(document).ready(function(){
                   return $(a).attr(VE.tmp.sort_par) <= $(b).attr(VE.tmp.sort_par) ? VE.tmp.sort_direction : VE.tmp.sort_direction * -1;
                 }).appendTo(".l-center.units");
               });
-              
+
               $('#objects').submit( function (e){
                  if(!e.originalEvent){
                     return;
@@ -142,7 +142,7 @@ $(document).ready(function(){
                         $('#objects').append(div);
                     }
                  });
-                 
+
                  $('#objects').submit();
                  return false;
               });
@@ -549,7 +549,7 @@ $(document).ready(function(){
               $(document).click(function(evt){
                 //close notification popup
                 if(!$(evt.target).hasClass('l-profile__notifications') && $(evt.target).parents('ul.notification-container').length == 0){
-                  $('.notification-container').hide();
+                  $('.notification-container').addClass('u-hidden');
                   $('.l-profile__notifications').removeClass('active');
                 }
               });
@@ -557,7 +557,7 @@ $(document).ready(function(){
 
               // focusing on the first input at form
               if( location.href.indexOf('lead=') == -1 && !$('.ui-dialog').is(':visible') ){
-                $('#vstobjects .vst-input:not([disabled]), #vstobjects .vst-list:not([disabled])').first().focus();
+                $('#vstobjects .vst-input:not([disabled]), #vstobjects .form-control:not([disabled]), #vstobjects .form-select:not([disabled])').first().focus();
               }
 
               $('.l-profile__notifications').click(function(){
@@ -568,7 +568,7 @@ $(document).ready(function(){
                   $('.notification-container').css({left: left+'px'});
 
                 } else {
-                  $('.notification-container').hide();
+                  $('.notification-container').addClass('u-hidden');
                   $('.l-profile__notifications').removeClass('active');
                 }
               });
@@ -582,7 +582,7 @@ $(document).ready(function(){
             VE.core.register();
             if (location.href.search(/list/) != -1) {
                 var shift_select_ref = $('body').finderSelect({
-                    children: '.l-unit', 
+                    children: '.l-unit',
                     'onFinish': function(evt) {
                         if ($('.l-content').find('.l-unit.selected').length == $('.l-content').find('.l-unit').length) {
                             $('.toggle-all').addClass('clicked-on');
@@ -608,10 +608,82 @@ $(document).ready(function(){
                 });
             }
 
-            // 
+            //
             $('form#objects').on('submit', function(evt) {
                 $('.l-unit').find('.ch-toggle').prop('checked', false);
                 $('.l-unit.selected').find('.ch-toggle').prop('checked', true);
             });
+            // todo: maybe give the save button id?
+            $(".ui-button[data-id=vstobjects][data-action=submit]").on('click', function(ev){
+              let loadingAnimationEle = document.createElement("div");
+              loadingAnimationEle.innerHTML = '<div class="timer-container" style="float:right;"><div class="timer-button spinner"><div class="spinner-inner"></div><div class="spinner-mask"></div> <div class="spinner-mask-two"></div></div></div>';
+              // this both gives an indication that we've clicked and is loading, also prevents double-clicking/clicking-on-something-else while loading.
+              $(".ui-button[data-id=vstobjects][data-action=submit]").replaceWith(loadingAnimationEle);
+              $(".ui-button").replaceWith('');
+              // workaround a render bug on Safari (loading icon doesn't render without this)
+              ev.preventDefault();
+              $('#vstobjects').submit();
+            });
     });
 
+/**
+ * generates a random string
+ * using a cryptographically secure rng,
+ * and ensuring it contains at least 1 lowercase, 1 uppercase, and 1 number.
+ *
+ * @param int length
+ * @throws Error if length is too small to create a "sufficiently secure" string
+ * @returns string
+ */
+function randomString2(length = 16) {
+  var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  var secure_rng = function (min, max) {
+    if (min < 0 || min > 0xffff) {
+      throw new Error(
+        "minimum supported number is 0, this generator can only make numbers between 0-65535 inclusive."
+      );
+    }
+    if (max > 0xffff || max < 0) {
+      throw new Error(
+        "max supported number is 65535, this generator can only make numbers between 0-65535 inclusive."
+      );
+    }
+    if (min > max) {
+      throw new Error("dude min>max wtf");
+    }
+    // micro-optimization
+    let randArr = max > 255 ? new Uint16Array(1) : new Uint8Array(1);
+    let ret;
+    let attempts = 0;
+    for (;;) {
+      crypto.getRandomValues(randArr);
+      ret = randArr[0];
+      if (ret >= min && ret <= max) {
+        return ret;
+      }
+      ++attempts;
+      if (attempts > 1000000) {
+        // should basically never happen with max 0xFFFF/Uint16Array.
+        throw new Error("tried a million times, something is wrong");
+      }
+    }
+  };
+  let attempts = 0;
+  let minimumStrengthRegex = new RegExp(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\d)[a-zA-Z\d]{8,}$/
+  );
+  let randmax = chars.length - 1;
+  for (;;) {
+    let ret = "";
+    for (let i = 0; i < length; ++i) {
+      ret += chars[secure_rng(0, randmax)];
+    }
+    if (minimumStrengthRegex.test(ret)) {
+      return ret;
+    }
+    ++attempts;
+    if (attempts > 1000000) {
+      throw new Error("tried a million times, something is wrong");
+    }
+  }
+};

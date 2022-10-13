@@ -1,7 +1,6 @@
 #!/bin/bash
 # info: add backup host
 # options: TYPE HOST USERNAME PASSWORD [PATH] [PORT]
-# labels: 
 #
 # example: v-add-backup-host sftp backup.acme.com admin p4$$w@Rd
 #          v-add-backup-host b2 bucketName keyID applicationKey
@@ -9,7 +8,7 @@
 # Add a new remote backup location. Currently SFTP, FTP and Backblaze are supported 
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -21,18 +20,20 @@ password=$(perl -e 'print quotemeta shift(@ARGV)' "${raw_password}")
 path=${5-/backup}
 port=$6
 
+# CPU Architecture
+arch=$(arch)
+
 # Includes
-# shellcheck source=/etc/hestiacp/hestia.conf
-source /etc/hestiacp/hestia.conf
 # shellcheck source=/usr/local/hestia/func/main.sh
 source $HESTIA/func/main.sh
-
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
+# Fetch current verison B2 CLI tool
+source_conf "$HESTIA/install/upgrade/upgrade.conf"
 
 # Paths
 b2cli="/usr/local/bin/b2"
-b2lnk="https://f000.backblazeb2.com/file/backblazefiles/b2/cli/linux/b2"
+b2lnk="https://github.com/Backblaze/B2_Command_Line_Tool/releases/download/v$b2_v/b2-linux"
 
 # Defining ftp command function
 ftpc() {
@@ -49,11 +50,17 @@ EOF
 
 # Defining sftp command function
 sftpc() {
+    if [ "$privatekey" != "yes" ]; then 
     expect -f "-" <<EOF "$@"
         set count 0
         spawn /usr/bin/sftp -o StrictHostKeyChecking=no -o Port=$port $user@$host
         expect {
             -nocase "password:" {
+                send "$password\r"
+                exp_continue
+            }
+
+            -re "Password for (.*)@(.*)" {
                 send "$password\r"
                 exp_continue
             }
@@ -97,8 +104,53 @@ sftpc() {
 
         exit \$rc
 EOF
+else
+    expect -f "-" <<EOF "$@"
+            set count 0
+            spawn /usr/bin/sftp -o StrictHostKeyChecking=no -o Port=$port -i $raw_password $user@$host
+            expect {
+    
+                -re "Couldn't|(.*)disconnect|(.*)stalled|(.*)not found" {
+                    set count \$argc
+                    set output "Disconnected."
+                    set rc $E_FTP
+                    exp_continue
+                }
+    
+                -re ".*denied.*(publickey|password)." {
+                    set output "Permission denied, wrong publickey or password."
+                    set rc $E_CONNECT
+                }
+    
+                "sftp>" {
+                    if {\$count < \$argc} {
+                        set arg [lindex \$argv \$count]
+                        send "\$arg\r"
+                        incr count
+                    } else {
+                        send "exit\r"
+                        set output "Disconnected."
+                        if {[info exists rc] != 1} {
+                            set rc $OK
+                        }
+                    }
+                    exp_continue
+                }
+    
+                timeout {
+                    set output "Connection timeout."
+                    set rc $E_CONNECT
+                }
+            }
+    
+            if {[info exists output] == 1} {
+                puts "\$output"
+            }
+    
+            exit \$rc
+EOF
+    fi
 }
-
 
 #----------------------------------------------------------#
 #                    Verifications                         #
@@ -107,8 +159,19 @@ EOF
 if [ "$type" != 'local' ];then
     check_args '4' "$#" "TYPE HOST USERNAME PASSWORD [PATH] [PORT]"
     is_format_valid 'host' 'path' 'port'
-    is_username_format_valid "$username" "username"
-    is_password_valid
+    is_type_valid  'sftp,ftp,b2' "$type"
+    is_username_format_valid "$user" "username"
+    privatekey="no"
+    if [ -f "$raw_password" ]; then
+        if [[ $(cat  "$raw_password" | grep "OPENSSH PRIVATE") ]]; then
+            privatekey="yes"
+            password="$raw_password"
+        else
+            is_password_valid    
+        fi   
+    else
+        is_password_valid
+    fi
     format_no_quotes "$password" "password"
     
     if [ "$type" = 'sftp' ]; then
@@ -191,8 +254,13 @@ fi
 if [ "$type" = 'b2' ]; then
     # Download b2 binary
     if [ ! -f "$b2cli" ]; then
-        wget -O $b2cli $b2lnk > /dev/null 2>&1
-        chmod +x $b2cli > /dev/null 2>&1
+        if [ "$arch" = 'aarch64' ] || [ "$arch" = 'arm64' ]; then
+            echo "Error: B2 binary for arm64 must be downloaded manually."
+            exit 3
+        else
+            wget -O $b2cli $b2lnk > /dev/null 2>&1
+            chmod +x $b2cli > /dev/null 2>&1
+        fi
         if [ ! -f "$b2cli" ]; then
             echo "Error: Binary download failed, b2 doesnt work as expected."
             exit 3
@@ -218,18 +286,17 @@ fi
 # Adding backup host
 if [ $type != 'local' ] && [ $type != 'b2' ]; then
     new_timestamp
-    str="HOST='$host'\nUSERNAME='$user'\nPASSWORD='$password'"
+    str="HOST='$host'\nUSERNAME='$user'\nPASSWORD='$password'\nPRIVATEKEY='$privatekey'"
     str="$str\nBPATH='$path'\nPORT='$port'\nTIME='$time'\nDATE='$date'"
     echo -e "$str" > $HESTIA/conf/$type.backup.conf
     chmod 660 $HESTIA/conf/$type.backup.conf
 elif [ $type == 'b2' ]; then
     new_timestamp
-    str="BUCKET='$host'\nB2_KEYID='$user'\nB2_KEY='$password'"
+    str="BUCKET='$host'\nB2_KEYID='$user'\nB2_KEY='$raw_password'"
     str="$str\nTIME='$time'\nDATE='$date'"
     echo -e "$str" > $HESTIA/conf/$type.backup.conf
     chmod 660 $HESTIA/conf/$type.backup.conf
 fi
-
 
 #----------------------------------------------------------#
 #                       Hestia                             #

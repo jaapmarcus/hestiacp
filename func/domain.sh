@@ -1,4 +1,11 @@
 #!/bin/bash
+
+#===========================================================================#
+#                                                                           #
+# Hestia Control Panel - Domain Function Library                            #
+#                                                                           #
+#===========================================================================#
+
 #----------------------------------------------------------#
 #                        WEB                               #
 #----------------------------------------------------------#
@@ -103,7 +110,7 @@ prepare_web_backend() {
         pool=$(find -L /etc/php/$backend_version -type d \( -name "pool.d" -o -name "*fpm.d" \))
     else
         backend_version=$(multiphp_default_version)
-        if [ -z "$pool" ] || [ -z "$BACKEND" ]; then 
+        if [ -z "$pool" ] || [ -z "$BACKEND" ]; then
             pool=$(find -L /etc/php/$backend_version -type d \( -name "pool.d" -o -name "*fpm.d" \))
         fi
     fi
@@ -135,7 +142,7 @@ prepare_web_aliases() {
     for tmp_alias in ${1//,/ }; do
         tmp_alias_idn="$tmp_alias"
         if [[ "$tmp_alias" = *[![:ascii:]]* ]]; then
-            tmp_alias_idn=$(idn -t --quiet -a $tmp_alias)
+            tmp_alias_idn=$(idn2 --quiet $tmp_alias)
         fi
         if [[ $i -eq 1 ]]; then
             aliases="$tmp_alias"
@@ -158,7 +165,7 @@ prepare_web_aliases() {
 # Update web domain values
 prepare_web_domain_values() {
     if [[ "$domain" = *[![:ascii:]]* ]]; then
-        domain_idn=$(idn -t --quiet -a $domain)
+        domain_idn=$(idn2 --quiet $domain)
     else
         domain_idn=$domain
     fi
@@ -170,7 +177,7 @@ prepare_web_domain_values() {
         sdocroot="$HOMEDIR/$user/web/$domain/public_shtml"
         $BIN/v-add-fs-directory "$user" "$HOMEDIR/$user/web/$domain/public_shtml";
         chmod 751 $HOMEDIR/$user/web/$domain/public_shtml;
-        chown www-data:$user $HOMEDIR/$user/web/$domain/public_shtml;    
+        chown www-data:$user $HOMEDIR/$user/web/$domain/public_shtml;
     fi
 
     if [ -n "$WEB_BACKEND" ]; then
@@ -223,7 +230,11 @@ prepare_web_domain_values() {
 
 # Add web config
 add_web_config() {
-    mkdir -p "$HOMEDIR/$user/conf/web/$domain"
+    # Check if folder already exists
+    if [ ! -d "$HOMEDIR/$user/conf/web/$domain" ]; then
+        mkdir -p "$HOMEDIR/$user/conf/web/$domain/"
+    fi
+    
     conf="$HOMEDIR/$user/conf/web/$domain/$1.conf"
     if [[ "$2" =~ stpl$ ]]; then
         conf="$HOMEDIR/$user/conf/web/$domain/$1.ssl.conf"
@@ -335,7 +346,7 @@ get_web_config_lines() {
     domain_idn=$domain
     format_domain_idn
     vhost_lines=$(grep -niF "name $domain_idn" $2)
-    vhost_lines=$(echo "$vhost_lines" |egrep "$domain_idn($| |;)") #"
+    vhost_lines=$(echo "$vhost_lines" |egrep "$domain_idn($| |;)")
     vhost_lines=$(echo "$vhost_lines" |cut -f 1 -d :)
     if [ -z "$vhost_lines" ]; then
         check_result $E_PARSING "can't parse config $2"
@@ -472,12 +483,12 @@ update_domain_zone() {
     domain_param=$(grep "DOMAIN='$domain'" $USER_DATA/dns.conf)
     parse_object_kv_list "$domain_param"
     local zone_ttl="$TTL"
-    SOA=$(idn --quiet -a -t "$SOA")
+    SOA=$(idn2 --quiet  "$SOA")
     if [ -z "$SERIAL" ]; then
         SERIAL=$(date +'%Y%m%d01')
     fi
     if [[ "$domain" = *[![:ascii:]]* ]]; then
-        domain_idn=$(idn -t --quiet -a $domain)
+        domain_idn=$(idn2 --quiet $domain)
     else
         domain_idn=$domain
     fi
@@ -501,13 +512,26 @@ update_domain_zone() {
         # inherit zone TTL if record lacks explicit TTL value
         [ -z "$TTL" ] && TTL="$zone_ttl"
 
-        RECORD=$(idn --quiet -a -t "$RECORD")
+        RECORD=$(idn2 --quiet  "$RECORD")
         if [ "$TYPE" = 'CNAME' ] || [ "$TYPE" = 'MX' ]; then
-            VALUE=$(idn --quiet -a -t "$VALUE")
+            VALUE=$(idn2 --quiet  "$VALUE")
         fi
-
-        if [ "$TYPE" = 'TXT' ] && [[ ${VALUE:0:1} != '"' ]]; then
-            VALUE=$(echo $VALUE | fold -w 255 | xargs -I '$' echo -n '"$"')
+        
+        if [ "$TYPE" = 'TXT' ]; then
+            txtlength=${#VALUE}
+            if [ $txtlength -gt 255 ]; then
+                already_chunked=0
+                if [[ $VALUE == *"\" \""* ]] || [[ $VALUE == *"\"\""* ]]; then
+                    already_chunked=1
+                fi
+                if [ $already_chunked -eq 0 ]; then
+                    if [[ ${VALUE:0:1} = '"' ]]; then
+                        txtlength=$(( $txtlength - 2 ))
+                        VALUE=${VALUE:1:txtlength}
+                    fi
+                    VALUE=$(echo $VALUE | fold -w 255 | xargs -I '$' echo -n '"$"')
+                fi
+            fi
         fi
 
         if [ "$SUSPENDED" != 'yes' ]; then
@@ -577,7 +601,7 @@ is_dns_fqnd() {
     r=$2
     fqdn_type=$(echo $t | grep "NS\|CNAME\|MX\|PTR\|SRV")
     tree_length=3
-    if [[ $t = 'CNAME' || $t = 'MX' ]]; then
+    if [[ $t = 'CNAME' || $t = 'MX' || $t = 'PTR' ]]; then
         tree_length=2
     fi
 
@@ -602,7 +626,7 @@ is_dns_nameserver_valid() {
         remote=$(echo $r |grep ".$domain.$")
         if [ -n "$remote" ]; then
             zone=$USER_DATA/dns/$d.conf
-            a_record=$(echo $r |cut -f 1 -d '.')
+            a_record=${r%.$d.}
             n_record=$(grep "RECORD='$a_record'" $zone| grep "TYPE='A'")
             if [ -z "$n_record" ]; then
                 check_result "$E_NOTEXIST" "IN A $a_record.$d does not exist"
@@ -695,23 +719,29 @@ add_mail_ssl_config() {
         cp -f $USER_DATA/ssl/mail.$domain.ca $HOMEDIR/$user/conf/mail/$domain/ssl/$domain.ca
     fi
 
-    # Add domain SSL configuration to dovecot
+    # Clean up dovecot configuration (if it exists)
     if [ -f /etc/dovecot/conf.d/domains/$domain.conf ]; then
         rm -f /etc/dovecot/conf.d/domains/$domain.conf
     fi
-    
-    mail_check=$($BIN/v-list-mail-domain-ssl "$user" "$domain" | grep SUBJECT | grep " $domain");
-    mail_check_alias=$($BIN/v-list-mail-domain-ssl "$user" "$domain" | grep ALIASES | grep " $domain");
-    if [ -n "$mail_check" ] || [ -n "$mail_check_alias" ]; then 
+
+    # Check if using custom / wildcard mail certificate
+    wildcard_domain="\\*.$(echo "$domain" | cut -f 1 -d . --complement)"
+    mail_cert_match=$($BIN/v-list-mail-domain-ssl $user $domain | awk '/SUBJECT|ALIASES/' | grep -wE " $domain| $wildcard_domain");
+
+    if [ -n "$mail_cert_match" ]; then 
+        # Add domain SSL configuration to dovecot
         echo "" >> /etc/dovecot/conf.d/domains/$domain.conf
         echo "local_name $domain {" >> /etc/dovecot/conf.d/domains/$domain.conf
         echo "  ssl_cert = <$HOMEDIR/$user/conf/mail/$domain/ssl/$domain.pem" >> /etc/dovecot/conf.d/domains/$domain.conf
         echo "  ssl_key = <$HOMEDIR/$user/conf/mail/$domain/ssl/$domain.key" >> /etc/dovecot/conf.d/domains/$domain.conf
         echo "}" >> /etc/dovecot/conf.d/domains/$domain.conf
+
         # Add domain SSL configuration to exim4
         ln -s $HOMEDIR/$user/conf/mail/$domain/ssl/$domain.pem $HESTIA/ssl/mail/$domain.crt
         ln -s $HOMEDIR/$user/conf/mail/$domain/ssl/$domain.key $HESTIA/ssl/mail/$domain.key
     fi 
+
+    # Add domain SSL configuration to dovecot
     echo "" >> /etc/dovecot/conf.d/domains/$domain.conf
     echo "local_name mail.$domain {" >> /etc/dovecot/conf.d/domains/$domain.conf
     echo "  ssl_cert = <$HOMEDIR/$user/conf/mail/$domain/ssl/$domain.pem" >> /etc/dovecot/conf.d/domains/$domain.conf
@@ -733,9 +763,9 @@ add_mail_ssl_config() {
 
 # Delete SSL support for mail domain
 del_mail_ssl_config() {
-    # Do a few checks to prevent accidentally removal of domain.com
-    mail_check=$(v-list-mail-domain-ssl $user $domain | grep SUBJECT | grep " $domain");
-    mail_check_alias=$(v-list-mail-domain-ssl $user $domain | grep ALIASES | grep " $domain");
+    # Check to prevent accidental removal of mismatched certificate
+    wildcard_domain="\\*.$(echo "$domain" | cut -f 1 -d . --complement)"
+    mail_cert_match=$($BIN/v-list-mail-domain-ssl $user $domain | awk '/SUBJECT|ALIASES/' | grep -wE " $domain| $wildcard_domain");
 
     # Remove old mail certificates
     rm -f $HOMEDIR/$user/conf/mail/$domain/ssl/*
@@ -750,7 +780,7 @@ del_mail_ssl_config() {
 
     # Remove SSL certificates
     rm -f $HOMEDIR/$user/conf/mail/$domain/ssl/*
-    if [ -n "$mail_check" ] || [ -n "$mail_check_alias" ]; then 
+    if [ -n "$mail_cert_match" ]; then 
         rm -f $HESTIA/ssl/mail/$domain.crt $HESTIA/ssl/mail/$domain.key
     fi
     rm -f $HESTIA/ssl/mail/mail.$domain.crt $HESTIA/ssl/mail/mail.$domain.key
@@ -782,7 +812,6 @@ add_webmail_config() {
     if [ "$WEBMAIL_ALIAS" != "mail" ]; then
         override_alias="mail.$domain"
         override_alias_idn="mail.$domain_idn"
-        
     fi
     
     # Note: Removing or renaming template variables will lead to broken custom templates.
@@ -920,7 +949,7 @@ is_valid_extension() {
         chmod 750 $HESTIA/data/extensions/
         /usr/bin/wget --tries=3 --timeout=15 --read-timeout=15 --waitretry=3 --no-dns-cache --quiet -O $HESTIA/data/extensions/public_suffix_list.dat https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat 
     fi
-    test_domain=$(idn -t --quiet -u "$1" )
+    test_domain=$(idn2 -d  "$1" )
     extension=$( /bin/echo "${test_domain}" | /usr/bin/rev | /usr/bin/cut -d "." --output-delimiter="." -f 1 | /usr/bin/rev );
     exten=$(grep "^$extension\$" $HESTIA/data/extensions/public_suffix_list.dat);
 }
@@ -931,7 +960,7 @@ is_valid_2_part_extension() {
         chmod 750 $HESTIA/data/extensions/
         /usr/bin/wget --tries=3 --timeout=15 --read-timeout=15 --waitretry=3 --no-dns-cache --quiet -O $HESTIA/data/extensions/public_suffix_list.dat https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat 
     fi
-    test_domain=$(idn -t --quiet -u "$1" )
+    test_domain=$(idn2 -d  "$1" )
     extension=$( /bin/echo "${test_domain}" | /usr/bin/rev | /usr/bin/cut -d "." --output-delimiter="." -f 1-2 | /usr/bin/rev );
     exten=$(grep "^$extension\$" $HESTIA/data/extensions/public_suffix_list.dat);
 }
@@ -963,16 +992,16 @@ is_base_domain_owner(){
                     parse_object_kv_list "$web"
                     if [ -z "$ALLOW_USERS" ] ||  [ "$ALLOW_USERS" != "yes" ]; then
                         # Don't care if $basedomain all ready exists only if the owner is of the base domain is the current user
-                        is_domain_new "" $basedomain;
+                        check=$(is_domain_new "" $basedomain)
                         if [ $? -ne 0 ]; then
-                            echo "Error: $basedomain belongs to a different user";
+                            echo "Error: Unable to add $object. $basedomain belongs to a different user";
                             exit 4;
                         fi
                     fi
                 else
-                    is_domain_new "" "$basedomain"
+                    check=$(is_domain_new "" "$basedomain")
                     if [ $? -ne 0 ]; then
-                        echo "Error: $basedomain belongs to a different user";
+                        echo "Error: Unable to add $object. $basedomain belongs to a different user";
                         exit 4;
                     fi
                 fi

@@ -28,27 +28,42 @@ class GravSetup extends BaseSetup {
 		'resources' => [
 			'composer' => [ 'src' => 'getgrav/grav', 'dst' => '/']
 		],
+		'server' => [
+			'nginx' => [
+				'template' => 'grav',
+			],
+			'php' => [ 
+				'supported' => [ '7.4', '8.0','8.1' ],
+			]
+		],
 	];
 	
 	public function install(array $options = null)
 	{
 		parent::install($options);
+		parent::setup($options);
+			
 		if ( $options['admin'] == true ){
 			chdir($this->getDocRoot());
-			$this -> appcontext -> runUser('v-run-cli-cmd', ['php', 
+			
+			$this -> appcontext -> runUser('v-run-cli-cmd', ["/usr/bin/php".$options['php_version'], 
 			$this->getDocRoot('/bin/gpm'),
 				'install admin'
 		    ], $status);
-			$this -> appcontext -> runUser('v-run-cli-cmd', ['php', 
+			$this -> appcontext -> runUser('v-run-cli-cmd', ["/usr/bin/php".$options['php_version'], 
 				$this->getDocRoot('/bin/plugin'),
 				'login new-user',
 				'-u '.$options['username'],
 				'-p '.$options['password'],
 				'-e '.$options['email'],
 				'-P a',
-				'-N '.$options['username']
+				'-N '.$options['username'],
+				'-l en'
 			 ], $status);
+			 return ($status -> code === 0);
+		}else{
+			return true;
 		}
-		return (1);
+
 	}
 }

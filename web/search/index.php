@@ -1,7 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-// Init
-error_reporting(null);
 $TAB = 'SEARCH';
 
 $_SESSION['back'] = $_SERVER['REQUEST_URI'];
@@ -12,23 +11,9 @@ include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 // Check token
 verify_csrf($_GET);
 
-// Check query
-$q = $_GET['q'];
-$u = $_GET['u'];
-
-#if (empty($q)) {
-#    $back=getenv("HTTP_REFERER");
-#    if (!empty($back)) {
-#        header("Location: ".$back);
-#        exit;
-#    }
-#    header("Location: /");
-#    exit;
-#}
-
 // Data
-$q = escapeshellarg($q);
-$u = escapeshellarg($u);
+$q = quoteshellarg($_GET['q']);
+$u = quoteshellarg($_GET['u']);
 
 if (($_SESSION['userContext'] === 'admin') && (!isset($_SESSION['look']))) {
     if (!empty($_GET['u'])) {

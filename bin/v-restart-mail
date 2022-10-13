@@ -1,15 +1,13 @@
 #!/bin/bash
 # info: restart mail service
-# options: NONE
-# labels: mail
+# options: [RESTART]
 #
 # example: v-restart-mail
 #
-# The function tells exim or dovecot services to reload configuration files.
-
+# This function tells exim or dovecot services to reload configuration files.
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Includes
@@ -29,7 +27,6 @@ send_email_report() {
     cat "$tmpfile" |$SENDMAIL -s "$subj" $email
     [[ -f "$tmpfile" ]] && rm -f $tmpfile
 }
-
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -54,7 +51,7 @@ fi
 tmpfile=$(mktemp)
 # Restart IMAP system if present
 if [ -n "$IMAP_SYSTEM" ]; then
-    $BIN/v-restart-service "$IMAP_SYSTEM" >> $tmpfile 2>&1
+    $BIN/v-restart-service "$IMAP_SYSTEM" "$1" >> $tmpfile 2>&1
     if [ $? -ne 0 ]; then
         send_email_report "$IMAP_SYSTEM"
         check_result "$E_RESTART" "$IMAP_SYSTEM restart failed"
@@ -62,7 +59,7 @@ if [ -n "$IMAP_SYSTEM" ]; then
 fi
 
 # Restart mail system
-$BIN/v-restart-service "$MAIL_SYSTEM" >> $tmpfile 2>&1
+$BIN/v-restart-service "$MAIL_SYSTEM" "$1" >> $tmpfile 2>&1
 if [ $? -ne 0 ]; then
     send_email_report "$MAIL_SYSTEM"
     check_result "$E_RESTART" "$MAIL_SYSTEM restart failed"
@@ -72,7 +69,6 @@ fi
 if [ -e "$HESTIA/data/queue/restart.pipe" ]; then
     sed -i "/\/$SCRIPT now/d" $HESTIA/data/queue/restart.pipe
 fi
-
 
 #----------------------------------------------------------#
 #                       Hestia                             #

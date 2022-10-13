@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'CRON';
 
@@ -44,12 +44,12 @@ if (!empty($_POST['ok'])) {
     }
 
     // Protect input
-    $v_min = escapeshellarg($_POST['v_min']);
-    $v_hour = escapeshellarg($_POST['v_hour']);
-    $v_day = escapeshellarg($_POST['v_day']);
-    $v_month = escapeshellarg($_POST['v_month']);
-    $v_wday = escapeshellarg($_POST['v_wday']);
-    $v_cmd = escapeshellarg($_POST['v_cmd']);
+    $v_min = quoteshellarg($_POST['v_min']);
+    $v_hour = quoteshellarg($_POST['v_hour']);
+    $v_day = quoteshellarg($_POST['v_day']);
+    $v_month = quoteshellarg($_POST['v_month']);
+    $v_wday = quoteshellarg($_POST['v_wday']);
+    $v_cmd = quoteshellarg($_POST['v_cmd']);
 
     // Add cron job
     if (empty($_SESSION['error_msg'])) {
@@ -71,6 +71,24 @@ if (!empty($_POST['ok'])) {
     }
 }
 
+if (empty($v_cmd)) {
+    $v_cmd = '';
+}
+if (empty($v_month)) {
+    $v_month = '';
+}
+if (empty($v_day)) {
+    $v_day = '';
+}
+if (empty($v_wday)) {
+    $v_wday = '';
+}
+if (empty($v_hour)) {
+    $v_hour = '';
+}
+if (empty($v_min)) {
+    $v_min = '';
+}
 // Render
 render_page($user, $TAB, 'add_cron');
 

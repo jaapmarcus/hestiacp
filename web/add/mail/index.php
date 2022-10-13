@@ -1,30 +1,25 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-#error_reporting(NULL);
 ob_start();
 $TAB = 'MAIL';
 
 // Main include
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
-// Get all user domains
-exec(HESTIA_CMD."v-list-mail-domains ".escapeshellarg($user)." json", $output, $return_var);
-$user_domains = json_decode(implode('', $output), true);
-$user_domains = array_keys($user_domains);
-unset($output);
-
 exec(HESTIA_CMD."v-list-sys-webmail json", $output, $return_var);
 $webmail_clients = json_decode(implode('', $output), true);
 unset($output);
 
-$v_domain = $_GET['domain'];
+if (!empty($_GET['domain'])) {
+    $v_domain = $_GET['domain'];
+}
 if (!empty($v_domain)) {
-    if (!in_array($v_domain, $user_domains)) {
-        header("Location: /list/mail/");
-        exit;
-    }
     // Set webmail alias
-    exec(HESTIA_CMD."v-list-mail-domain ".escapeshellarg($user)." ".escapeshellarg($v_domain)." json", $output, $return_var);
+    exec(HESTIA_CMD."v-list-mail-domain ".$user." ".quoteshellarg($v_domain)." json", $output, $return_var);
+    if ($return_var > 0) {
+        check_return_code_redirect($return_var, $output, '/list/mail/');
+    }
     $data = json_decode(implode('', $output), true);
     unset($output);
     $v_webmail_alias = $data[$v_domain]['WEBMAIL_ALIAS'];
@@ -74,7 +69,7 @@ if (!empty($_POST['ok'])) {
 
     // Set domain name to lowercase and remove www prefix
     $v_domain = preg_replace("/^www./i", "", $_POST['v_domain']);
-    $v_domain = escapeshellarg($v_domain);
+    $v_domain = quoteshellarg($v_domain);
     $v_domain = strtolower($v_domain);
 
     // Add mail domain
@@ -84,10 +79,16 @@ if (!empty($_POST['ok'])) {
         unset($output);
     }
 
+    if (!empty($_POST['v_reject']) && $v_antispam == "yes") {
+        exec(HESTIA_CMD."v-add-mail-domain-reject ".$user." ".$v_domain." yes", $output, $return_var);
+        check_return_code($return_var, $output);
+        unset($output);
+    }
+
     if (!empty($_SESSION['IMAP_SYSTEM']) && !empty($_SESSION['WEBMAIL_SYSTEM'])) {
         if (empty($_SESSION['error_msg'])) {
             if (!empty($_POST['v_webmail'])) {
-                $v_webmail = escapeshellarg($_POST['v_webmail']);
+                $v_webmail = quoteshellarg($_POST['v_webmail']);
                 exec(HESTIA_CMD."v-add-mail-domain-webmail ".$user." ".$v_domain." ".$v_webmail." yes", $output, $return_var);
                 check_return_code($return_var, $output);
                 unset($output);
@@ -107,26 +108,22 @@ if (!empty($_POST['ok'])) {
 
     // Add SMTP Relay Support
     if (empty($_SESSION['error_msg'])) {
-        if (isset($_POST['v_smtp_relay']) && (!empty($_POST['v_smtp_relay_host'])) && (!empty($_POST['v_smtp_relay_user']))) {
+        if (isset($_POST['v_smtp_relay']) && !empty($_POST['v_smtp_relay_host'])) {
             if (($_POST['v_smtp_relay_host'] != $v_smtp_relay_host) ||
                 ($_POST['v_smtp_relay_user'] != $v_smtp_relay_user) ||
                 ($_POST['v_smtp_relay_port'] != $v_smtp_relay_port)) {
-                if (!empty($_POST['v_smtp_relay_pass'])) {
-                    $v_smtp_relay = true;
-                    $v_smtp_relay_host = escapeshellarg($_POST['v_smtp_relay_host']);
-                    $v_smtp_relay_user = escapeshellarg($_POST['v_smtp_relay_user']);
-                    $v_smtp_relay_pass = escapeshellarg($_POST['v_smtp_relay_pass']);
-                    if (!empty($_POST['v_smtp_relay_port'])) {
-                        $v_smtp_relay_port = escapeshellarg($_POST['v_smtp_relay_port']);
-                    } else {
-                        $v_smtp_relay_port = '587';
-                    }
-                    exec(HESTIA_CMD."v-add-mail-domain-smtp-relay ".$user." ".$v_domain." ".$v_smtp_relay_host." ".$v_smtp_relay_user." ".$v_smtp_relay_pass." ".$v_smtp_relay_port, $output, $return_var);
-                    check_return_code($return_var, $output);
-                    unset($output);
+                $v_smtp_relay = true;
+                $v_smtp_relay_host = quoteshellarg($_POST['v_smtp_relay_host']);
+                $v_smtp_relay_user = quoteshellarg($_POST['v_smtp_relay_user']);
+                $v_smtp_relay_pass = quoteshellarg($_POST['v_smtp_relay_pass']);
+                if (!empty($_POST['v_smtp_relay_port'])) {
+                    $v_smtp_relay_port = quoteshellarg($_POST['v_smtp_relay_port']);
                 } else {
-                    $_SESSION['error_msg'] = _('SMTP Relay Password is required');
+                    $v_smtp_relay_port = '587';
                 }
+                exec(HESTIA_CMD."v-add-mail-domain-smtp-relay ".$user." ".$v_domain." ".$v_smtp_relay_host." '".$v_smtp_relay_user."' '".$v_smtp_relay_pass."' ".$v_smtp_relay_port, $output, $return_var);
+                check_return_code($return_var, $output);
+                unset($output);
             }
         }
     }
@@ -193,10 +190,10 @@ if (!empty($_POST['ok_acc'])) {
     }
 
     // Protect input
-    $v_domain = escapeshellarg($_POST['v_domain']);
+    $v_domain = quoteshellarg($_POST['v_domain']);
     $v_domain = strtolower($v_domain);
-    $v_account = escapeshellarg($_POST['v_account']);
-    $v_quota = escapeshellarg($_POST['v_quota']);
+    $v_account = quoteshellarg($_POST['v_account']);
+    $v_quota = quoteshellarg($_POST['v_quota']);
     $v_send_email = $_POST['v_send_email'];
     $v_credentials = $_POST['v_credentials'];
     $v_aliases = $_POST['v_aliases'];
@@ -218,7 +215,7 @@ if (!empty($_POST['ok_acc'])) {
         check_return_code($return_var, $output);
         unset($output);
         unlink($v_password);
-        $v_password = escapeshellarg($_POST['v_password']);
+        $v_password = quoteshellarg($_POST['v_password']);
     }
 
     // Add Aliases
@@ -229,7 +226,7 @@ if (!empty($_POST['ok_acc'])) {
         $valiases = trim($valiases);
         $aliases = explode(" ", $valiases);
         foreach ($aliases as $alias) {
-            $alias = escapeshellarg($alias);
+            $alias = quoteshellarg($alias);
             if (empty($_SESSION['error_msg'])) {
                 exec(HESTIA_CMD."v-add-mail-account-alias ".$user." ".$v_domain." ".$v_account." ".$alias, $output, $return_var);
                 check_return_code($return_var, $output);
@@ -253,7 +250,7 @@ if (!empty($_POST['ok_acc'])) {
         $vfwd = trim($vfwd);
         $fwd = explode(" ", $vfwd);
         foreach ($fwd as $forward) {
-            $forward = escapeshellarg($forward);
+            $forward = quoteshellarg($forward);
             if (empty($_SESSION['error_msg'])) {
                 exec(HESTIA_CMD."v-add-mail-account-forward ".$user." ".$v_domain." ".$v_account." ".$forward, $output, $return_var);
                 check_return_code($return_var, $output);
@@ -269,9 +266,17 @@ if (!empty($_POST['ok_acc'])) {
         unset($output);
     }
 
+    // Add fwd_only flag
+    if ((!empty($_POST['v_rate'])) && (empty($_SESSION['error_msg']))  && $_SESSION['userContext'] == 'admin') {
+        $v_rate = quoteshellarg($_POST['v_rate']);
+        exec(HESTIA_CMD."v-change-mail-account-rate-limit ".$user." ".$v_domain." ".$v_account." ".$v_rate, $output, $return_var);
+        check_return_code($return_var, $output);
+        unset($output);
+    }
+
     // Get webmail url
     if (empty($_SESSION['error_msg'])) {
-        list($http_host, $port) = explode(':', $_SERVER["HTTP_HOST"].":");
+        list($hostname, $port) = explode(':', $_SERVER["HTTP_HOST"].":");
         $webmail = "http://".$hostname."/".$v_webmail_alias."/";
         if (!empty($_SESSION['WEBMAIL_ALIAS'])) {
             $webmail = $_SESSION['WEBMAIL_ALIAS'];
@@ -282,7 +287,7 @@ if (!empty($_POST['ok_acc'])) {
     if ((!empty($v_send_email)) && (empty($_SESSION['error_msg']))) {
         $to = $v_send_email;
         $subject = _("Email Credentials");
-        $hostname = exec('hostname');
+        $hostname = get_hostname();
         $from = "noreply@".$hostname;
         $from_name = _('Hestia Control Panel');
         $mailtext = $v_credentials;
@@ -309,10 +314,57 @@ if (empty($_GET['domain'])) {
         //default is always roundcube unless it hasn't been installed. Then picks the first one in order
         $v_webmail  = 'roundcube';
     }
+
+    if (empty($_GET['accept'])) {
+        $_GET['accept'] = false;
+    }
+    if (empty($v_domain)) {
+        $v_domain = '';
+    }
+    if (empty($v_smtp_relay)) {
+        $v_smtp_relay = '';
+    }
+    if (empty($v_smtp_relay_user)) {
+        $v_smtp_relay_user = '';
+    }
+    if (empty($v_smtp_relay_password)) {
+        $v_smtp_relay_password = '';
+    }
+    if (empty($v_smtp_relay_host)) {
+        $v_smtp_relay_host = '';
+    }
+    if (empty($v_smtp_relay_port)) {
+        $v_smtp_relay_port = '';
+    }
+
+
     render_page($user, $TAB, 'add_mail');
 } else {
     // Display body for mail account
-
+    if (empty($v_account)) {
+        $v_account = '';
+    }
+    if (empty($v_quota)) {
+        $v_quota = '';
+    }
+    if (empty($v_rate)) {
+        $v_rate = '';
+    }
+    if (empty($v_blackhole)) {
+        $v_blackhole = '';
+    }
+    if (empty($v_fwd_only)) {
+        $v_fwd_only = '';
+    }
+    if (empty($v_aliases)) {
+        $v_aliases = '';
+    }
+    if (empty($v_send_email)) {
+        $v_send_email = '';
+    }
+    if (empty($v_fwd)) {
+        $v_fwd = '';
+    }
     $v_domain = $_GET['domain'];
     render_page($user, $TAB, 'add_mail_acc');
 }

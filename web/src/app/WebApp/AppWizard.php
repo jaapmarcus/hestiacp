@@ -13,7 +13,7 @@ class AppWizard {
     private $errors;
 
     private $database_config = [
-        'database_create' => ['type'=>'boolean', 'value'=>false],
+        'database_create' => ['type'=>'boolean', 'value'=>true],
         'database_name' => ['type'=>'text', 'placeholder' => 'auto'],
         'database_user' => ['type'=>'text', 'placeholder' => 'auto'],
         'database_password' => ['type'=>'password', 'placeholder' => 'auto'],
@@ -64,6 +64,10 @@ class AppWizard {
     public function getOptions()
     {
         $options = $this->appsetup->getOptions();
+        
+        $config = $this->appsetup -> getConfig();
+        $options = array_merge($options, array('php_version' => ['type' => 'select', 'value' => $this->appcontext->getCurrentBackendTemplate($this -> domain), 'options' => $this->appcontext->getSupportedPHP($config['server']['php']['supported'])]));
+        
         if ($this->appsetup->withDatabase()) {
             $options = array_merge($options, $this->database_config);
         }
@@ -99,6 +103,11 @@ class AppWizard {
 
             if(empty($options['database_password'])) {
                 $options['database_password'] = bin2hex(random_bytes(10));
+            }
+            
+            if(!$this->appcontext->checkDatabaseLimit()) {
+                $this->errors[] = _('Unable to add database! Limit reached!');
+                return false;
             }
 
             if(!$this->appcontext->databaseAdd($options['database_name'], $options['database_user'], $options['database_password'])) {

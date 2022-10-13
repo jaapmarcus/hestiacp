@@ -1,13 +1,11 @@
 #!/bin/bash
 # info: synchronize dns domains
 # options: HOST
-# labels: dns
 #
-# The function synchronize all dns domains.
-
+# This function synchronise all dns domains.
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -22,7 +20,6 @@ source $HESTIA/func/main.sh
 source $HESTIA/func/remote.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
-
 
 #----------------------------------------------------------#
 #                    Verifications                         #
@@ -50,7 +47,10 @@ fi
 
 # Starting cluster loop
 for cluster in $hosts; do
-
+    
+    # Reset user, password and hash vars
+    clear_dns_cluster_settings    
+    
     # Parsing host values
     parse_object_kv_list "$cluster"
 
@@ -83,7 +83,6 @@ for cluster in $hosts; do
     check_result $? "$TYPE connection to $HOST failed" "$E_CONNECT"
 
 done
-
 
 #----------------------------------------------------------#
 #                       Hestia                             #

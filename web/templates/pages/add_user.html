@@ -16,8 +16,8 @@
 <div class="l-center animated fadeIn">
 
 	<form id="vstobjects" name="v_add_user" method="post">
-		<input type="hidden" name="token" value="<?=$_SESSION['token']?>" />
-		<input type="hidden" name="ok" value="Add" />
+		<input type="hidden" name="token" value="<?=$_SESSION['token']?>">
+		<input type="hidden" name="ok" value="Add">
 
 		<table class="data mode-add">
 			<tr class="data-add">
@@ -31,71 +31,46 @@
 				<td class="data-dotted">
 					<table class="data-col2">
 						<tr>
-							<td class="step-top">
+							<td class="u-pt18">
 								<span class="page-title"><?=_('Adding User');?></span>
 							</td>
 						</tr>
 						<tr>
 							<td>
-								<?php
-									if (!empty($_SESSION['error_msg'])) {
-										$msg_icon = 'fa-exclamation-circle status-icon red';
-										$msg_text = htmlentities($_SESSION['error_msg']);
-										$msg_id = 'vst-error';
-									} else {
-										if (!empty($_SESSION['ok_msg'])) {
-											$msg_icon = 'fa-check-circle status-icon green';
-											$msg_text = $_SESSION['ok_msg'];
-											$msg_id = 'vst-ok';
-										}
-									}
-								?>
-								<span class="<?=$msg_id;?>"> <i class="fas <?=$msg_icon;?>"></i> <?=$msg_text;?></span>
+								<?php show_error_panel($_SESSION);?>
 							</td>
 						</tr>
 						<tr>
-							<td class="vst-text step-top">
-								<?=_('Username');?>
+							<td class="u-pt18">
+								<label for="v_username" class="form-label"><?=_('Username');?></label>
+								<input type="text" class="form-control" name="v_username" id="v_username" value="<?=htmlentities(trim($v_username, "'"))?>" tabindex="1">
 							</td>
 						</tr>
 						<tr>
-							<td>
-								<input type="text" size="20" class="vst-input" name="v_username" value="<?=htmlentities(trim($v_username, "'"))?>" tabindex="1">
+							<td class="u-pt6">
+								<label for="v_name" class="form-label"><?=_('Contact');?></label>
+								<input type="text" class="form-control" name="v_name" id="v_name" value="<?=htmlentities(trim($v_name, "'"))?>" tabindex="2">
 							</td>
 						</tr>
 						<tr>
-							<td class="vst-text ">
-								<?=_('Contact');?>
+							<td class="u-pt6">
+								<label for="v_email" class="form-label"><?=_('Email');?></label>
+								<input type="email" class="form-control" name="v_email" id="v_email" value="<?=htmlentities(trim($v_email, "'"))?>" tabindex="3">
 							</td>
 						</tr>
 						<tr>
-							<td>
-								<input type="text" size="20" class="vst-input" name="v_name" value="<?=htmlentities(trim($v_name, "'"))?>" tabindex="2">
-							</td>
-						</tr>
-						<tr>
-							<td class="vst-text input-label">
-								<?=_('Email');?>
+							<td class="u-pt6">
+								<label for="v_password" class="form-label">
+									<?=_('Password');?> <a href="javascript:applyRandomString();" title="<?=_('generate');?>"><i class="fas fa-sync status-icon green icon-large"></i></a>
+								</label>
+								<div class="u-pos-relative u-mb10">
+									<input type="text" class="form-control js-password-input" name="v_password" id="v_password" value="<?=htmlentities(trim($v_password, "'"))?>" tabindex="4">
+									<meter max="4" class="password-meter"></meter>
+								</div>
 							</td>
 						</tr>
 						<tr>
 							<td>
-								<input type="text" size="20" class="vst-input" name="v_email" id='v_email' value="<?=htmlentities(trim($v_email, "'"))?>" tabindex="3">
-							</td>
-						</tr>
-						<tr>
-							<td class="vst-text input-label">
-								<?=_('Password');?> <a href="javascript:randomString();" title="<?=_('generate');?>"><i class="fas fa-sync status-icon green icon-large"></i></a>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<input type="text" size="20" class="vst-input password" name="v_password" value="<?=htmlentities(trim($v_password, "'"))?>" tabindex="4" /><br />
-								<meter max="4" id="meter"></meter>
-							</td>
-						</tr>
-						<tr>
-							<td class="vst-text">
 								<?=_('Your password must have at least');?>:
 								<ul>
 									<li><?=_('8 characters long');?></li>
@@ -106,22 +81,28 @@
 						</tr>
 						<tr>
 							<td>
-								<label><input type="checkbox" size="20" class="vst-checkbox" onclick="javascript:elementHideShow('send-welcome');" name="v_login_disabled" <?php if ($data[$user]['LOGIN_DISABLED'] == "yes") echo "checked=yes" ?>><?=_('Do not allow user to log in to Control Panel');?></label>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="v_login_disabled" id="v_login_disabled" onclick="javascript:elementHideShow('send-welcome');" <?php if ($v_login_disabled == "yes") echo 'checked' ?>>
+									<label for="v_login_disabled">
+										<?=_('Do not allow user to log in to Control Panel');?>
+									</label>
+								</div>
 							</td>
 						</tr>
 						<tr id="send-welcome">
-							<td class="vst-text input-label">
-								<label><input type="checkbox" size="20" class="vst-checkbox" name="v_email_notice" id='v_email_notify' value="" tabindex="5" /><?=_('Send welcome email');?></label>
+							<td class="u-pt6">
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="v_email_notice" id="v_email_notify" tabindex="5">
+									<label for="v_email_notify">
+										<?=_('Send welcome email');?>
+									</label>
+								</div>
 							</td>
 						</tr>
 						<tr>
-							<td class="vst-text input-label">
-								<?=_('Language');?>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<select class="vst-list" name="v_language" tabindex="6">
+							<td class="u-pt6">
+								<label for="v_language" class="form-label"><?=_('Language');?></label>
+								<select class="form-select" name="v_language" id="v_language" tabindex="6">
 									<?php
 										foreach ($languages as $key => $value) {
 											echo "\n\t\t\t\t\t\t\t\t\t<option value=\"".htmlentities($key)."\"";
@@ -140,26 +121,18 @@
 							</td>
 						</tr>
 						<tr>
-							<td class="vst-text input-label">
-								<?=_('Role');?>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<select class="vst-list" name="v_role" tabindex="7">
+							<td class="u-pt6">
+								<label for="v_role" class="form-label"><?=_('Role');?></label>
+								<select class="form-select" name="v_role" id="v_role">
 									<option value="user"><?=_('User');?>
 									<option value="admin" <?php if($v_role == "admin" ){ echo "selected"; } ?>><?=_('Administrator');?>
 								</select>
 							</td>
 						</tr>
 						<tr>
-							<td class="vst-text input-label" name="v_package">
-								<?=_('Package');?>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<select class="vst-list" name="v_package" tabindex="8">
+							<td class="u-pt6">
+								<label for="v_package" class="form-label"><?=_('Package');?></label>
+								<select class="form-select" name="v_package" id="v_package" tabindex="8">
 									<?php
 										foreach ($data as $key => $value) {
 											echo "\n\t\t\t\t\t\t\t\t\t\t\t\t\t<option value=\"".htmlentities($key)."\"";
@@ -177,17 +150,15 @@
 							</td>
 						</tr>
 						<tr>
-							<td class="vst-text input-label">
-								<?=_('Send login credentials to email address');?>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<input type="text" class="vst-input" name="v_notify" id="v_notify" value="<?=htmlentities(trim($v_notify, "'"))?>" tabindex="8">
+							<td class="u-pt6">
+								<label for="v_notify" class="form-label">
+									<?=_('Send login credentials to email address') ?>
+								</label>
+								<input type="email" class="form-control u-input-width" name="v_notify" id="v_notify" value="<?=htmlentities(trim($v_notify, "'"))?>" tabindex="8">
 							</td>
 						</tr>
 					</table>
-					<table class="data-col2"></table>
+					<table class="data-col2 u-mb20"></table>
 				</td>
 			</tr>
 		</table>

@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'PACKAGE';
 
@@ -20,15 +20,16 @@ if (empty($_GET['package'])) {
     exit;
 }
 
-// Prevent editing of default package
-if ($_GET['package'] === 'default') {
+// Prevent editing of system package
+if ($_GET['package'] === 'system') {
     header("Location: /list/package/");
     exit;
 }
 
 // List package
-$v_package = escapeshellarg($_GET['package']);
+$v_package = quoteshellarg($_GET['package']);
 exec(HESTIA_CMD."v-list-user-package ".$v_package." 'json'", $output, $return_var);
+check_return_code_redirect($return_var, $output, '/list/package/');
 $data = json_decode(implode('', $output), true);
 unset($output);
 
@@ -45,6 +46,7 @@ $v_dns_domains = $data[$v_package]['DNS_DOMAINS'];
 $v_dns_records = $data[$v_package]['DNS_RECORDS'];
 $v_mail_domains = $data[$v_package]['MAIL_DOMAINS'];
 $v_mail_accounts = $data[$v_package]['MAIL_ACCOUNTS'];
+$v_ratelimit = $data[$v_package]['RATE_LIMIT'];
 $v_databases = $data[$v_package]['DATABASES'];
 $v_cron_jobs = $data[$v_package]['CRON_JOBS'];
 $v_disk_quota = $data[$v_package]['DISK_QUOTA'];
@@ -52,14 +54,46 @@ $v_bandwidth = $data[$v_package]['BANDWIDTH'];
 $v_shell = $data[$v_package]['SHELL'];
 $v_ns = $data[$v_package]['NS'];
 $nameservers = explode(",", $v_ns);
-$v_ns1 = $nameservers[0];
-$v_ns2 = $nameservers[1];
-$v_ns3 = $nameservers[2];
-$v_ns4 = $nameservers[3];
-$v_ns5 = $nameservers[4];
-$v_ns6 = $nameservers[5];
-$v_ns7 = $nameservers[6];
-$v_ns8 = $nameservers[7];
+if (empty($nameservers[0])) {
+    $v_ns1 = '';
+} else {
+    $v_ns1 = $nameservers[0];
+}
+if (empty($nameservers[1])) {
+    $v_ns2 = '';
+} else {
+    $v_ns2 = $nameservers[1];
+}
+if (empty($nameservers[2])) {
+    $v_ns3 = '';
+} else {
+    $v_ns3 = $nameservers[2];
+}
+if (empty($nameservers[3])) {
+    $v_ns4 = '';
+} else {
+    $v_ns4 = $nameservers[3];
+}
+if (empty($nameservers[4])) {
+    $v_ns5 = '';
+} else {
+    $v_ns5 = $nameservers[4];
+}
+if (empty($nameservers[5])) {
+    $v_ns6 = '';
+} else {
+    $v_ns6 = $nameservers[5];
+}
+if (empty($nameservers[6])) {
+    $v_ns7 = '';
+} else {
+    $v_ns7 = $nameservers[6];
+}
+if (empty($nameservers[7])) {
+    $v_ns8 = '';
+} else {
+    $v_ns8 = $nameservers[7];
+}
 $v_backups = $data[$v_package]['BACKUPS'];
 $v_date = $data[$v_package]['DATE'];
 $v_time = $data[$v_package]['TIME'];
@@ -142,6 +176,9 @@ if (!empty($_POST['save'])) {
     if (!isset($_POST['v_mail_accounts'])) {
         $errors[] = _('mail accounts');
     }
+    if (!isset($_POST['v_ratelimit'])) {
+        $errors[] = _('rate limit');
+    }
     if (!isset($_POST['v_databases'])) {
         $errors[] = _('databases');
     }
@@ -176,32 +213,33 @@ if (!empty($_POST['save'])) {
                 $error_msg = $error_msg.", ".$error;
             }
         }
-        $_SESSION['error_msg'] = _('Field "%s" can not be blank.', $error_msg);
+        $_SESSION['error_msg'] = sprintf(_('Field "%s" can not be blank.'), $error_msg);
     }
 
     // Protect input
-    $v_package = escapeshellarg($_POST['v_package']);
-    $v_package_new = escapeshellarg($_POST['v_package_new']);
-    $v_web_template = escapeshellarg($_POST['v_web_template']);
+    $v_package = quoteshellarg($_POST['v_package']);
+    $v_package_new = quoteshellarg($_POST['v_package_new']);
+    $v_web_template = quoteshellarg($_POST['v_web_template']);
     if (!empty($_SESSION['WEB_BACKEND'])) {
-        $v_backend_template = escapeshellarg($_POST['v_backend_template']);
+        $v_backend_template = quoteshellarg($_POST['v_backend_template']);
     }
     if (!empty($_SESSION['PROXY_SYSTEM'])) {
-        $v_proxy_template = escapeshellarg($_POST['v_proxy_template']);
+        $v_proxy_template = quoteshellarg($_POST['v_proxy_template']);
     }
-    $v_dns_template = escapeshellarg($_POST['v_dns_template']);
-    $v_shell = escapeshellarg($_POST['v_shell']);
-    $v_web_domains = escapeshellarg($_POST['v_web_domains']);
-    $v_web_aliases = escapeshellarg($_POST['v_web_aliases']);
-    $v_dns_domains = escapeshellarg($_POST['v_dns_domains']);
-    $v_dns_records = escapeshellarg($_POST['v_dns_records']);
-    $v_mail_domains = escapeshellarg($_POST['v_mail_domains']);
-    $v_mail_accounts = escapeshellarg($_POST['v_mail_accounts']);
-    $v_databases = escapeshellarg($_POST['v_databases']);
-    $v_cron_jobs = escapeshellarg($_POST['v_cron_jobs']);
-    $v_backups = escapeshellarg($_POST['v_backups']);
-    $v_disk_quota = escapeshellarg($_POST['v_disk_quota']);
-    $v_bandwidth = escapeshellarg($_POST['v_bandwidth']);
+    $v_dns_template = quoteshellarg($_POST['v_dns_template']);
+    $v_shell = quoteshellarg($_POST['v_shell']);
+    $v_web_domains = quoteshellarg($_POST['v_web_domains']);
+    $v_web_aliases = quoteshellarg($_POST['v_web_aliases']);
+    $v_dns_domains = quoteshellarg($_POST['v_dns_domains']);
+    $v_dns_records = quoteshellarg($_POST['v_dns_records']);
+    $v_mail_domains = quoteshellarg($_POST['v_mail_domains']);
+    $v_mail_accounts = quoteshellarg($_POST['v_mail_accounts']);
+    $v_ratelimit = quoteshellarg($_POST['v_ratelimit']);
+    $v_databases = quoteshellarg($_POST['v_databases']);
+    $v_cron_jobs = quoteshellarg($_POST['v_cron_jobs']);
+    $v_backups = quoteshellarg($_POST['v_backups']);
+    $v_disk_quota = quoteshellarg($_POST['v_disk_quota']);
+    $v_bandwidth = quoteshellarg($_POST['v_bandwidth']);
     $v_ns1 = trim($_POST['v_ns1'], '.');
     $v_ns2 = trim($_POST['v_ns2'], '.');
     $v_ns3 = trim($_POST['v_ns3'], '.');
@@ -229,9 +267,9 @@ if (!empty($_POST['save'])) {
     if (!empty($v_ns8)) {
         $v_ns .= ",".$v_ns8;
     }
-    $v_ns = escapeshellarg($v_ns);
-    $v_time = escapeshellarg(date('H:i:s'));
-    $v_date = escapeshellarg(date('Y-m-d'));
+    $v_ns = quoteshellarg($v_ns);
+    $v_time = quoteshellarg(date('H:i:s'));
+    $v_date = quoteshellarg(date('Y-m-d'));
 
     // Save package file on a fs
     $pkg = "WEB_TEMPLATE=".$v_web_template."\n";
@@ -244,6 +282,7 @@ if (!empty($_POST['save'])) {
     $pkg .= "DNS_RECORDS=".$v_dns_records."\n";
     $pkg .= "MAIL_DOMAINS=".$v_mail_domains."\n";
     $pkg .= "MAIL_ACCOUNTS=".$v_mail_accounts."\n";
+    $pkg .= "RATE_LIMIT=".$v_ratelimit."\n";
     $pkg .= "DATABASES=".$v_databases."\n";
     $pkg .= "CRON_JOBS=".$v_cron_jobs."\n";
     $pkg .= "DISK_QUOTA=".$v_disk_quota."\n";

@@ -1,6 +1,6 @@
 <?php
+use function Hestiacp\quoteshellarg\quoteshellarg;
 
-error_reporting(null);
 ob_start();
 $TAB = 'DB';
 
@@ -58,8 +58,8 @@ if (!empty($_POST['ok'])) {
     }
 
     // Protect input
-    $v_database = escapeshellarg($_POST['v_database']);
-    $v_dbuser = escapeshellarg($_POST['v_dbuser']);
+    $v_database = quoteshellarg($_POST['v_database']);
+    $v_dbuser = quoteshellarg($_POST['v_dbuser']);
     $v_type = $_POST['v_type'];
     $v_charset = $_POST['v_charset'];
     $v_host = $_POST['v_host'];
@@ -67,9 +67,9 @@ if (!empty($_POST['ok'])) {
 
     // Add database
     if (empty($_SESSION['error_msg'])) {
-        $v_type = escapeshellarg($_POST['v_type']);
-        $v_charset = escapeshellarg($_POST['v_charset']);
-        $v_host = escapeshellarg($_POST['v_host']);
+        $v_type = quoteshellarg($_POST['v_type']);
+        $v_charset = quoteshellarg($_POST['v_charset']);
+        $v_host = quoteshellarg($_POST['v_host']);
         $v_password = tempnam("/tmp", "vst");
         $fp = fopen($v_password, "w");
         fwrite($fp, $_POST['v_password']."\n");
@@ -78,7 +78,7 @@ if (!empty($_POST['ok'])) {
         check_return_code($return_var, $output);
         unset($output);
         unlink($v_password);
-        $v_password = escapeshellarg($_POST['v_password']);
+        $v_password = quoteshellarg($_POST['v_password']);
         $v_type = $_POST['v_type'];
         $v_host = $_POST['v_host'];
         $v_charset = $_POST['v_charset'];
@@ -114,16 +114,16 @@ if (!empty($_POST['ok'])) {
     if ((!empty($v_db_email)) && (empty($_SESSION['error_msg']))) {
         $to = $v_db_email;
         $subject = _("Database Credentials");
-        $hostname = exec('hostname');
+        $hostname = get_hostname();
         $from = "noreply@".$hostname;
         $from_name = _('Hestia Control Panel');
-        $mailtext = sprintf(_('DATABASE_READY'), $user."_".$_POST['v_database'], $user."_".$_POST['v_dbuser'], $_POST['v_password'], $db_admin_link);
+        $mailtext = sprintf(_('DATABASE_READY'), $user_plain."_".$_POST['v_database'], $user_plain."_".$_POST['v_dbuser'], $_POST['v_password'], $db_admin_link);
         send_email($to, $subject, $mailtext, $from, $from_name);
     }
 
     // Flush field values on success
     if (empty($_SESSION['error_msg'])) {
-        $_SESSION['ok_msg'] = sprintf(_('DATABASE_CREATED_OK'), htmlentities($user)."_".htmlentities($_POST['v_database']), htmlentities($user)."_".htmlentities($_POST['v_database']));
+        $_SESSION['ok_msg'] = sprintf(_('DATABASE_CREATED_OK'), htmlentities($user_plain)."_".htmlentities($_POST['v_database']), htmlentities($user_plain)."_".htmlentities($_POST['v_database']));
         $_SESSION['ok_msg'] .= " / <a href=".$db_admin_link." target='_blank'>" . sprintf(_('open %s'), $db_admin) . "</a>";
         unset($v_database);
         unset($v_dbuser);
@@ -134,7 +134,13 @@ if (!empty($_POST['ok'])) {
 }
 
 // Get user email
-$v_db_email = $panel[$user]['CONTACT'];
+$v_db_email = '';
+if (empty($v_database)) {
+    $v_database = '';
+}
+if (empty($v_dbuser)) {
+    $v_dbuser = '';
+}
 
 // List avaiable database types
 $db_types = explode(',', $_SESSION['DB_SYSTEM']);

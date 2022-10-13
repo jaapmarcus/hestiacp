@@ -1,15 +1,13 @@
 #!/bin/bash
 # info: update web templates
 # options: [RESTART] [SKIP]
-# labels: web
 #
 # example: v-update-web-templates
 #
-# The function for obtaining updated web (Nginx/Apache2/PHP) templates from Hestia package.
-
+# This function for obtaining updated web (Nginx/Apache2/PHP) templates from the Hestia package.
 
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
@@ -45,6 +43,10 @@ if [ "$PROXY_SYSTEM" = 'nginx' ] || [ "$WEB_BACKEND" = "php-fpm" ]; then
 fi
 
 for webtpl_folder in $(ls $HESTIA_INSTALL_DIR/templates/web/* -d 2>/dev/null | egrep -v '/(nginx)$' ); do
+    cp -rf "${webtpl_folder}" "${WEBTPL}/"
+done
+# Skeleton, Unassinged and Suspended
+for webtpl_folder in $(ls $HESTIA_COMMON_DIR/templates/web/* -d 2>/dev/null ); do
     cp -rf "${webtpl_folder}" "${WEBTPL}/"
 done
 

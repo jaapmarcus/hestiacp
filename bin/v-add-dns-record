@@ -1,28 +1,26 @@
 #!/bin/bash
 # info: add dns record
 # options: USER DOMAIN RECORD TYPE VALUE [PRIORITY] [ID] [RESTART] [TTL]
-# labels: dns
 #
 # example: v-add-dns-record admin acme.com www A 162.227.73.112
 #
-# The call is used for adding new DNS record. Complex records of TXT, MX and
-# SRV types can be used by a filling in the 'value' argument. The function also
-# gets an id parameter for definition of certain record identifier or for the
+# This function is used to add a new DNS record. Complex records of TXT, MX and
+# SRV types can be used by a filling in the 'value' argument. This function also
+# gets an ID parameter for definition of certain record identifiers or for the
 # regulation of records.
 
-
 #----------------------------------------------------------#
-#                    Variable&Function                     #
+#                Variables & Functions                     #
 #----------------------------------------------------------#
 
 # Argument definition
 user=$1
 domain=$2
 domain_idn=$2
-record=$(idn -t --quiet -u "$3" )
+record=$(idn2 --quiet -d "$3" )
 record=$(echo "$record" | tr '[:upper:]' '[:lower:]')
 rtype=$(echo "$4"| tr '[:lower:]' '[:upper:]')
-dvalue=$(idn -t --quiet -u "$5" )
+dvalue=$5
 priority=$6
 id=$7
 restart=$8
@@ -57,8 +55,8 @@ if [[ $rtype =~ NS|CNAME|MX|PTR|SRV ]]; then
 fi
 
 if [[ $rtype =~ NS|CNAME|MX|PTR|SRV ]]; then
-    dvalue=$(idn -t --quiet -a "$dvalue" )
-    record=$(idn -t --quiet -a "$record" )
+    dvalue=$(idn2 --quiet  "$dvalue" )
+    record=$(idn2 --quiet  "$record" )
 fi
 
 # Cleanup quotes on dvalue
@@ -75,11 +73,14 @@ if [ "$rtype" != "CAA" ]; then
     fi
 fi
 
+if [ "$record" = "@" ] && [ "$rtype" = "CNAME" ]; then
+    check_result $E_INVALID "CNAME on root is not allowed"
+fi
+
 # Additional argument formatting
 format_domain
 format_domain_idn
 # TODO: $domain_idn not used in this script - maybe $domain should be converted to $doman_idn ?
-
 
 #----------------------------------------------------------#
 #                    Verifications                         #
@@ -99,10 +100,12 @@ is_object_new "dns/$domain" 'ID' "$id"
 is_dns_fqnd "$rtype" "$dvalue"
 is_dns_nameserver_valid "$domain" "$rtype" "$dvalue"
 is_format_valid 'ttl'
+if [ -n "$restart" ]; then
+    is_format_valid 'restart'
+fi
 
 # Perform verification if read-only mode is enabled
 check_hestia_demo_mode
-
 
 #----------------------------------------------------------#
 #                       Action                             #
@@ -139,7 +142,6 @@ if [ -n "$DNS_CLUSTER" ]; then
         echo "$cmd" >> $HESTIA/data/queue/dns-cluster.pipe
     fi
 fi
-
 
 #----------------------------------------------------------#
 #                       Hestia                             #
