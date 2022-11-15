@@ -10,13 +10,29 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Add support for DNSSEC support for DNS domains (#2938)
-- Add support for rate limit exim in packages (#2920)
+- Add support for rate limit Exim in packages (#2920)
 - Add support for ssh keys for SFTP (#2906)
+- Replace RRD static images with graphs based on javascript (#3045, 2859)
+- Cleanup Web interface / HTML / CSS and Javascript code
 
 ### Bugfixes
 
-### Dependencies
+- Update missing translations for logs (#3033 @Hexaris)
+- Fixed an issue with timezones in edit server (#3031, #2971)
+- Fixed an issue with www alias not always created (#3030 #1750)
+- Fixed an issue with Fail2ban an mysqld-iptables @neto373 "Krzysiek86" (#3025)
+- Improve restart behaviour v-add-domain (#3020 #1236)
+- Fixed an issue in v-backup-user where failure to create backup continued in a endless loop of emails (#2923 #3019)
+- Fixed an bug where remote access user of mysql database never got restored (#3046 #3011)
 
+### Testing
+
+- Add Github actions for ESLint (#3034)
+- Add Github actions for Shellcheck (#3036)
+- Add Github actions for Stylelint (#3040)
+
+### Dependencies
+- Update Normalize.css to 8.0.1
 
 ## [1.6.11] - Service release
 
