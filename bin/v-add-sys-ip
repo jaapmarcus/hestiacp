@@ -28,7 +28,7 @@ if [ -z "$iface" ]; then
 fi
 
 iface="${3-$iface}"
-user="${4-admin}"
+user=$4
 ip_status="${5-shared}"
 ip_name="$6"
 nat_ip="$7"
@@ -44,6 +44,10 @@ source $HESTIA/func/ip.sh
 source $HESTIA/func/domain.sh
 # load config file
 source_conf "$HESTIA/conf/hestia.conf"
+
+if [ -z "$user" ]; then
+	user="$ROOT_USER"
+fi
 
 #----------------------------------------------------------#
 #                    Verifications                         #

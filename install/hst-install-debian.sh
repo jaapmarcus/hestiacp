@@ -77,6 +77,7 @@ help() {
   -y, --interactive       Interactive install   [yes|no]  default: yes
   -s, --hostname          Set hostname
   -e, --email             Set admin email
+  -u, --username          Set admin user
   -p, --password          Set admin password
   -D, --with-debs         Path to Hestia debs
   -f, --force             Force installation
@@ -162,6 +163,16 @@ sort_config_file() {
 	cp $HESTIA/conf/hestia.conf $HESTIA/conf/defaults/hestia.conf
 }
 
+# Validate username
+validate_username() {
+	if [[ "$username" =~ ^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$ ]]; then
+		# Username valid
+		return 1
+	else
+		return 0
+	fi
+}
+
 # Validate hostname according to RFC1178
 validate_hostname() {
 	# remove extra .
@@ -222,6 +233,7 @@ for arg; do
 		--api) args="${args}-d " ;;
 		--hostname) args="${args}-s " ;;
 		--email) args="${args}-e " ;;
+		--username) args="${args}-u " ;;
 		--password) args="${args}-p " ;;
 		--force) args="${args}-f " ;;
 		--with-debs) args="${args}-D " ;;
@@ -260,6 +272,7 @@ while getopts "a:w:v:j:k:m:M:g:d:x:z:Z:c:t:i:b:r:o:q:l:y:s:e:p:D:fh" Option; do
 		y) interactive=$OPTARG ;; # Interactive install
 		s) servername=$OPTARG ;;  # Hostname
 		e) email=$OPTARG ;;       # Admin email
+		u) username=$OPTARG ;;    # Admin username
 		p) vpass=$OPTARG ;;       # Admin password
 		D) withdebs=$OPTARG ;;    # Hestia debs path
 		f) force='yes' ;;         # Force install
@@ -335,10 +348,10 @@ if [ -d "/usr/local/hestia" ]; then
 	check_result 1 "Hestia install detected. Unable to continue"
 fi
 
-# Checking admin user account
-if [ -n "$(grep ^admin: /etc/passwd /etc/group)" ] && [ -z "$force" ]; then
-	echo 'Please remove admin user account before proceeding.'
-	echo 'If you want to do it automatically run installer with -f option:'
+# Check if user name exists
+if [ -n "$(grep ^$username: /etc/passwd /etc/group)" ] && [ -z "$force" ]; then
+	echo "Please remove admin $username account before proceeding."
+	echo "If you want to do it automatically run installer with -f option:"
 	echo -e "Example: bash $0 --force\n"
 	check_result 1 "User admin exists"
 fi
@@ -613,6 +626,24 @@ else
 		echo "Please use a valid emailadress (ex. info@domain.tld)."
 		exit 1
 	fi
+fi
+
+if [ -z "$username" ]; then
+	while validate_username; do
+		echo -e "\nPlease use a valid username (ex. user)."
+		read -p 'Please enter administrator username: ' username
+	done
+else
+	if validate_username; then
+		echo "Please use a valid username (ex. user)."
+		exit 1
+	fi
+fi
+
+if [ -z "$vpass" ]; then
+	while validate_password; do
+		read -p 'Please enter administrator password: ' vpass
+	done
 fi
 
 # Asking to set FQDN hostname
@@ -1012,6 +1043,12 @@ rm -f /usr/sbin/policy-rc.d
 
 echo "[ * ] Configuring system settings..."
 
+random_password=$(gen_pass 32)
+# Create a new username set the random password and create no home dir
+usr/sbin/useradd "hestiaweb" -s "$shell" -c "$email" -m --no-create-home -U
+# do not allow login into hestiaweb user
+echo hestiaweb:$random_password | sudo chpasswd -e
+
 # Enable SFTP subsystem for SSH
 sftp_subsys_enabled=$(grep -iE "^#?.*subsystem.+(sftp )?sftp-server" /etc/ssh/sshd_config)
 if [ -n "$sftp_subsys_enabled" ]; then
@@ -1074,8 +1111,8 @@ fi
 echo "[ * ] Configuring Hestia Control Panel..."
 # Installing sudo configuration
 mkdir -p /etc/sudoers.d
-cp -f $HESTIA_INSTALL_DIR/sudo/admin /etc/sudoers.d/
-chmod 440 /etc/sudoers.d/admin
+cp -f $HESTIA_INSTALL_DIR/sudo/hestiaweb /etc/sudoers.d/
+chmod 440 /etc/sudoers.d/hestiaweb
 
 # Add Hestia global config
 if [[ ! -e /etc/hestiacp/hestia.conf ]]; then
@@ -1117,6 +1154,7 @@ touch $HESTIA/conf/hestia.conf
 chmod 660 $HESTIA/conf/hestia.conf
 
 # Write default port value to hestia.conf
+write_config_value "ROOT_USER" "$username"
 # If a custom port is specified it will be set at the end of the installation process.
 write_config_value "BACKEND_PORT" "8083"
 
@@ -1232,6 +1270,7 @@ write_config_value "RELEASE_BRANCH" "release"
 write_config_value "UPGRADE_SEND_EMAIL" "true"
 write_config_value "UPGRADE_SEND_EMAIL_LOG" "false"
 
+echo "[ * ] Prepare data folder..."
 # Installing hosting packages
 cp -rf $HESTIA_COMMON_DIR/packages $HESTIA/data/
 
@@ -1261,6 +1300,7 @@ rm -f $HESTIA/data/firewall/ipset/blacklist.sh $HESTIA/data/firewall/ipset/black
 # Installing apis
 cp -rf $HESTIA_COMMON_DIR/api $HESTIA/data/
 
+echo "[ * ] Setup hostname"
 # Configuring server hostname
 $HESTIA/bin/v-change-sys-hostname $servername > /dev/null 2>&1
 
@@ -1303,15 +1343,15 @@ rm /tmp/hst.pem
 cp -f $HESTIA_INSTALL_DIR/ssl/dhparam.pem /etc/ssl
 
 # Deleting old admin user
-if [ -n "$(grep ^admin: /etc/passwd)" ] && [ "$force" = 'yes' ]; then
-	chattr -i /home/admin/conf > /dev/null 2>&1
-	userdel -f admin > /dev/null 2>&1
-	chattr -i /home/admin/conf > /dev/null 2>&1
-	mv -f /home/admin $hst_backups/home/ > /dev/null 2>&1
+if [ -n "$(grep ^$username: /etc/passwd)" ] && [ "$force" = 'yes' ]; then
+	chattr -i /home/$username/conf > /dev/null 2>&1
+	userdel -f $username > /dev/null 2>&1
+	chattr -i /home/$username/conf > /dev/null 2>&1
+	mv -f /home/$username $hst_backups/home/ > /dev/null 2>&1
 	rm -f /tmp/sess_* > /dev/null 2>&1
 fi
-if [ -n "$(grep ^admin: /etc/group)" ] && [ "$force" = 'yes' ]; then
-	groupdel admin > /dev/null 2>&1
+if [ -n "$(grep ^$username: /etc/group)" ] && [ "$force" = 'yes' ]; then
+	groupdel "$username" > /dev/null 2>&1
 fi
 
 # Enable sftp jail
@@ -1321,11 +1361,11 @@ check_result $? "can't enable sftp jail"
 
 # Adding Hestia admin account
 echo "[ * ] Create admin account..."
-$HESTIA/bin/v-add-user admin $vpass $email "system" "System Administrator"
+$HESTIA/bin/v-add-user "$username" "$vpass" "$email" "system" "System Administrator"
 check_result $? "can't create admin user"
-$HESTIA/bin/v-change-user-shell admin nologin
-$HESTIA/bin/v-change-user-role admin admin
-$HESTIA/bin/v-change-user-language admin $lang
+$HESTIA/bin/v-change-user-shell "$username" "nologin"
+$HESTIA/bin/v-change-user-role "$username" "admin"
+$HESTIA/bin/v-change-user-language "$username" "$lang"
 $HESTIA/bin/v-change-sys-config-value 'POLICY_SYSTEM_PROTECTED_ADMIN' 'yes'
 
 locale-gen "en_US.utf8" > /dev/null 2>&1
@@ -2051,7 +2091,7 @@ if [ "$apache" = 'yes' ] && [ "$nginx" = 'yes' ]; then
 fi
 
 # Adding default domain
-$HESTIA/bin/v-add-web-domain admin "$servername" "$ip"
+$HESTIA/bin/v-add-web-domain "$username" "$servername" "$ip"
 check_result $? "can't create $servername domain"
 
 # Adding cron jobs
@@ -2060,26 +2100,21 @@ command="sudo $HESTIA/bin/v-update-sys-queue restart"
 $HESTIA/bin/v-add-cron-job 'admin' '*/2' '*' '*' '*' '*' "$command"
 systemctl restart cron
 
-command="sudo $HESTIA/bin/v-update-sys-queue daily"
-$HESTIA/bin/v-add-cron-job 'admin' '10' '00' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-sys-queue disk"
-$HESTIA/bin/v-add-cron-job 'admin' '15' '02' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-sys-queue traffic"
-$HESTIA/bin/v-add-cron-job 'admin' '10' '00' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-sys-queue webstats"
-$HESTIA/bin/v-add-cron-job 'admin' '30' '03' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-sys-queue backup"
-$HESTIA/bin/v-add-cron-job 'admin' '*/5' '*' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-backup-users"
-$HESTIA/bin/v-add-cron-job 'admin' '10' '05' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-user-stats"
-$HESTIA/bin/v-add-cron-job 'admin' '20' '00' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-sys-rrd"
-$HESTIA/bin/v-add-cron-job 'admin' '*/5' '*' '*' '*' '*' "$command"
-command="sudo $HESTIA/bin/v-update-letsencrypt-ssl"
 min=$(gen_pass '012345' '2')
 hour=$(gen_pass '1234567' '1')
-$HESTIA/bin/v-add-cron-job 'admin' "$min" "$hour" '*' '*' '*' "$command"
+echo "MAILTO=$email" > /etc/cron.d/hestiaweb
+echo "CONTENT_TYPE=\"text/plain; charset=utf-8\"" >> /etc/cron.d/hestiaweb
+echo "*/2 * * * * sudo /usr/local/hestia/bin/v-update-sys-queue restart" >> /etc/cron.d/hestiaweb
+echo "10 00 * * * sudo /usr/local/hestia/bin/v-update-sys-queue daily" >> /etc/cron.d/hestiaweb
+echo "15 02 * * * sudo /usr/local/hestia/bin/v-update-sys-queue disk" >> /etc/cron.d/hestiaweb
+echo "10 00 * * * sudo /usr/local/hestia/bin/v-update-sys-queue traffic" >> /etc/cron.d/hestiaweb
+echo "30 03 * * * sudo /usr/local/hestia/bin/v-update-sys-queue webstats" >> /etc/cron.d/hestiaweb
+echo "*/5 * * * * sudo /usr/local/hestia/bin/v-update-sys-queue backup" >> /etc/cron.d/hestiaweb
+echo "10 05 * * * sudo /usr/local/hestia/bin/v-backup-users" >> /etc/cron.d/hestiaweb
+echo "20 00 * * * sudo /usr/local/hestia/bin/v-update-user-stats" >> /etc/cron.d/hestiaweb
+echo "*/5 * * * * sudo /usr/local/hestia/bin/v-update-sys-rrd" >> /etc/cron.d/hestiaweb
+echo "$min $hour * * * sudo /usr/local/hestia/bin/v-update-letsencrypt-ssl" >> /etc/cron.d/hestiaweb
+echo "41 4 * * * sudo /usr/local/hestia/bin/v-update-sys-hestia-all" >> /etc/cron.d/hestiaweb
 
 # Enable automatic updates
 $HESTIA/bin/v-add-cron-hestia-autoupdate apt
@@ -2109,7 +2144,7 @@ echo
 update-rc.d hestia defaults
 systemctl start hestia
 check_result $? "hestia start failed"
-chown admin:admin $HESTIA/data/sessions
+chown hestiaweb:hestiaweb $HESTIA/data/sessions
 
 # Create backup folder and set correct permission
 mkdir -p /backup/
@@ -2158,7 +2193,7 @@ Ready to get started? Log in using the following credentials:
 if [ "$host_ip" != "$ip" ]; then
 	echo "	Backup URL: https://$ip:$port" >> $tmpfile
 fi
-echo -e -n " 	Username:   admin
+echo -e -n " 	Username:   $username
 	Password:   $displaypass
 
 Thank you for choosing Hestia Control Panel to power your full stack web server,
@@ -2194,7 +2229,7 @@ cat $tmpfile
 rm -f $tmpfile
 
 # Add welcome message to notification panel
-$HESTIA/bin/v-add-user-notification admin 'Welcome to Hestia Control Panel!' '<br>You are now ready to begin <a href="/add/user/">adding user accounts</a> and <a href="/add/web/">domains</a>. For help and assistance, <a href="https://hestiacp.com/docs/" target="_blank">view the documentation</a> or <a href="https://forum.hestiacp.com/" target="_blank">visit our forum</a>.<br><br>Please <a href="https://github.com/hestiacp/hestiacp/issues" target="_blank">report any issues via GitHub</a>.<br><br><b>Have a wonderful day!</b><br><br><i class="fas fa-heart icon-red"></i> The Hestia Control Panel development team'
+$HESTIA/bin/v-add-user-notification "$username" 'Welcome to Hestia Control Panel!' '<br>You are now ready to begin <a href="/add/user/">adding user accounts</a> and <a href="/add/web/">domains</a>. For help and assistance, <a href="https://hestiacp.com/docs/" target="_blank">view the documentation</a> or <a href="https://forum.hestiacp.com/" target="_blank">visit our forum</a>.<br><br>Please <a href="https://github.com/hestiacp/hestiacp/issues" target="_blank">report any issues via GitHub</a>.<br><br><b>Have a wonderful day!</b><br><br><i class="fas fa-heart icon-red"></i> The Hestia Control Panel development team'
 
 # Clean-up
 # Sort final configuration file

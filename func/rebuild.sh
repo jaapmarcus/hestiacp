@@ -77,13 +77,9 @@ rebuild_user_conf() {
 		groupadd --system "hestia-users"
 	fi
 
-	# Add membership to hestia-users group to non-admin users
-	if [ "$user" = "admin" ]; then
-		setfacl -m "g:admin:r-x" "$HOMEDIR/$user"
-	else
-		usermod -a -G "hestia-users" "$user"
-		setfacl -m "u:$user:r-x" "$HOMEDIR/$user"
-	fi
+	usermod -a -G "hestia-users" "$user"
+	setfacl -m "u:$user:r-x" "$HOMEDIR/$user"
+
 	setfacl -m "g:hestia-users:---" "$HOMEDIR/$user"
 
 	# Update user shell

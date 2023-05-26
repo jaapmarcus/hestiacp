@@ -20,7 +20,7 @@ source_conf "$HESTIA/conf/hestia.conf"
 source_conf "$HESTIA/install/upgrade/upgrade.conf"
 
 MODE=$1
-user="admin"
+user="$ROOT_USER"
 
 FM_INSTALL_DIR="$HESTIA/web/fm"
 FM_FILE="filegator_latest"
@@ -51,7 +51,7 @@ fi
 if [ ! -f "$COMPOSER_BIN" ]; then
 	$BIN/v-add-user-composer "$user"
 	if [ $? -ne 0 ]; then
-		$BIN/v-add-user-notification admin 'Composer installation failed!' '<b>The File Manager will not work without Composer.</b><br><br>Please try running the installer manually from a shell session:<br>v-add-sys-filemanager<br><br>If this continues, <a href="https://github.com/hestiacp/hestiacp/issues" target="_blank">open an issue on GitHub</a>.'
+		$BIN/v-add-user-notification "$ROOT_USER" 'Composer installation failed!' '<b>The File Manager will not work without Composer.</b><br><br>Please try running the installer manually from a shell session:<br>v-add-sys-filemanager<br><br>If this continues, <a href="https://github.com/hestiacp/hestiacp/issues" target="_blank">open an issue on GitHub</a>.'
 		exit 1
 	fi
 fi

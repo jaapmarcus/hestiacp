@@ -13,10 +13,6 @@
 # Argument definition
 user=$1
 
-if [ -z "$HESTIA" ]; then
-	HESTIA="/usr/local/hestia"
-fi
-
 # shellcheck source=/etc/hestiacp/hestia.conf
 source /etc/hestiacp/hestia.conf
 # shellcheck source=/usr/local/hestia/func/main.sh

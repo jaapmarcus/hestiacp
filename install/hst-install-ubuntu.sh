@@ -77,6 +77,7 @@ help() {
   -y, --interactive       Interactive install   [yes|no]  default: yes
   -s, --hostname          Set hostname
   -e, --email             Set admin email
+  -u, --username          Set admin user
   -p, --password          Set admin password
   -D, --with-debs         Path to Hestia debs
   -f, --force             Force installation
@@ -162,6 +163,16 @@ sort_config_file() {
 	cp $HESTIA/conf/hestia.conf $HESTIA/conf/defaults/hestia.conf
 }
 
+# Validate username
+validate_username() {
+	if [[ "$username" =~ ^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$ ]]; then
+		# Username valid
+		return 1
+	else
+		return 0
+	fi
+}
+
 # Validate hostname according to RFC1178
 validate_hostname() {
 	# remove extra .
@@ -222,6 +233,7 @@ for arg; do
 		--api) args="${args}-d " ;;
 		--hostname) args="${args}-s " ;;
 		--email) args="${args}-e " ;;
+		--username) args="${args}-u " ;;
 		--password) args="${args}-p " ;;
 		--force) args="${args}-f " ;;
 		--with-debs) args="${args}-D " ;;
@@ -260,6 +272,7 @@ while getopts "a:w:v:j:k:m:M:g:d:x:z:Z:c:t:i:b:r:o:q:l:y:s:e:p:D:fh" Option; do
 		y) interactive=$OPTARG ;;  # Interactive install
 		s) servername=$OPTARG ;;   # Hostname
 		e) email=$OPTARG ;;        # Admin email
+		u) username=$OPTARG ;;     # Admin username
 		p) vpass=$OPTARG ;;        # Admin password
 		D) withdebs=$OPTARG ;;     # Hestia debs path
 		f) force='yes' ;;          # Force install
@@ -332,9 +345,9 @@ if [ -d "/usr/local/hestia" ]; then
 fi
 
 # Checking admin user account
-if [ -n "$(grep ^admin: /etc/passwd /etc/group)" ] && [ -z "$force" ]; then
-	echo 'Please remove admin user account before proceeding.'
-	echo 'If you want to do it automatically run installer with -f option:'
+if [ -n "$(grep ^$username: /etc/passwd /etc/group)" ] && [ -z "$force" ]; then
+	echo "Please remove $username user account before proceeding."
+	echo "If you want to do it automatically run installer with -f option:"
 	echo -e "Example: bash $0 --force\n"
 	check_result 1 "User admin exists"
 fi
@@ -602,6 +615,24 @@ else
 		echo "Please use a valid emailadress (ex. info@domain.tld)."
 		exit 1
 	fi
+fi
+
+if [ -z "$username" ]; then
+	while validate_username; do
+		echo -e "\nPlease use a valid username (ex. user)."
+		read -p 'Please enter administrator username: ' username
+	done
+else
+	if validate_username; then
+		echo "Please use a valid username (ex. user)."
+		exit 1
+	fi
+fi
+
+if [ -z "$vpass" ]; then
+	while validate_password; do
+		read -p 'Please enter administrator password: ' vpass
+	done
 fi
 
 # Asking to set FQDN hostname
@@ -1007,6 +1038,12 @@ rm -f /usr/sbin/policy-rc.d
 
 echo "[ * ] Configuring system settings..."
 
+random_password=$(gen_pass 32)
+# Create a new username set the random password and create no home dir
+usr/sbin/useradd "hestiaweb" -s "$shell" -c "$email" -m --no-create-home -U
+# do not allow login into hestiaweb user
+echo hestiaweb:$random_password | sudo chpasswd -e
+
 # Enable SFTP subsystem for SSH
 sftp_subsys_enabled=$(grep -iE "^#?.*subsystem.+(sftp )?sftp-server" /etc/ssh/sshd_config)
 if [ -n "$sftp_subsys_enabled" ]; then
@@ -1105,8 +1142,8 @@ fi
 echo "[ * ] Configuring Hestia Control Panel..."
 # Installing sudo configuration
 mkdir -p /etc/sudoers.d
-cp -f $HESTIA_INSTALL_DIR/sudo/admin /etc/sudoers.d/
-chmod 440 /etc/sudoers.d/admin
+cp -f $HESTIA_INSTALL_DIR/sudo/hestiaweb /etc/sudoers.d/
+chmod 440 /etc/sudoers.d/hestiaweb
 
 # Add Hestia global config
 if [[ ! -e /etc/hestiacp/hestia.conf ]]; then
@@ -1148,6 +1185,7 @@ touch $HESTIA/conf/hestia.conf
 chmod 660 $HESTIA/conf/hestia.conf
 
 # Write default port value to hestia.conf
+write_config_value "ROOT_USER" "$username"
 # If a custom port is specified it will be set at the end of the installation process.
 write_config_value "BACKEND_PORT" "8083"
 
@@ -1263,6 +1301,7 @@ write_config_value "RELEASE_BRANCH" "release"
 write_config_value "UPGRADE_SEND_EMAIL" "true"
 write_config_value "UPGRADE_SEND_EMAIL_LOG" "false"
 
+echo "[ * ] Prepare data folder..."
 # Installing hosting packages
 cp -rf $HESTIA_COMMON_DIR/packages $HESTIA/data/
 
@@ -1292,6 +1331,7 @@ rm -f $HESTIA/data/firewall/ipset/blacklist.sh $HESTIA/data/firewall/ipset/black
 # Installing apis
 cp -rf $HESTIA_COMMON_DIR/api $HESTIA/data/
 
+echo "[ * ] Setup hostname"
 # Configuring server hostname
 $HESTIA/bin/v-change-sys-hostname $servername > /dev/null 2>&1
 
@@ -1339,15 +1379,15 @@ rm /tmp/hst.pem
 cp -f $HESTIA_INSTALL_DIR/ssl/dhparam.pem /etc/ssl
 
 # Deleting old admin user
-if [ -n "$(grep ^admin: /etc/passwd)" ] && [ "$force" = 'yes' ]; then
-	chattr -i /home/admin/conf > /dev/null 2>&1
-	userdel -f admin > /dev/null 2>&1
-	chattr -i /home/admin/conf > /dev/null 2>&1
-	mv -f /home/admin $hst_backups/home/ > /dev/null 2>&1
+if [ -n "$(grep ^$username: /etc/passwd)" ] && [ "$force" = 'yes' ]; then
+	chattr -i /home/$username/conf > /dev/null 2>&1
+	userdel -f $username > /dev/null 2>&1
+	chattr -i /home/$username/conf > /dev/null 2>&1
+	mv -f /home/$username $hst_backups/home/ > /dev/null 2>&1
 	rm -f /tmp/sess_* > /dev/null 2>&1
 fi
-if [ -n "$(grep ^admin: /etc/group)" ] && [ "$force" = 'yes' ]; then
-	groupdel admin > /dev/null 2>&1
+if [ -n "$(grep ^$username: /etc/group)" ] && [ "$force" = 'yes' ]; then
+	groupdel "$username" > /dev/null 2>&1
 fi
 
 # Remove sudo "default" sudo permission admin user group should not exists any way
@@ -1360,11 +1400,11 @@ check_result $? "can't enable sftp jail"
 
 # Adding Hestia admin account
 echo "[ * ] Create admin account..."
-$HESTIA/bin/v-add-user admin $vpass $email "system" "System Administrator"
+$HESTIA/bin/v-add-user "$username" "$vpass" "$email" "system" "System Administrator"
 check_result $? "can't create admin user"
-$HESTIA/bin/v-change-user-shell admin nologin
-$HESTIA/bin/v-change-user-role admin admin
-$HESTIA/bin/v-change-user-language admin $lang
+$HESTIA/bin/v-change-user-shell "$username" "nologin"
+$HESTIA/bin/v-change-user-role "$username" "admin"
+$HESTIA/bin/v-change-user-language "$username" "$lang"
 $HESTIA/bin/v-change-sys-config-value 'POLICY_SYSTEM_PROTECTED_ADMIN' 'yes'
 
 locale-gen "en_US.utf8" > /dev/null 2>&1
@@ -2090,7 +2130,7 @@ if [ "$apache" = 'yes' ] && [ "$nginx" = 'yes' ]; then
 fi
 
 # Adding default domain
-$HESTIA/bin/v-add-web-domain admin "$servername" "$ip"
+$HESTIA/bin/v-add-web-domain "$username" "$servername" "$ip"
 check_result $? "can't create $servername domain"
 
 # Adding cron jobs

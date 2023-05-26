@@ -70,7 +70,11 @@ fi
 
 #
 chown ${user}: "${AUTHKEY_FILE}"
-chown admin: "${PRVKEY_FILE}"
+if [ "$(cat /etc/passwd | grep hestiaweb | wc -l)" = "1" ]; then
+	chown hestiaweb: "${PRVKEY_FILE}"
+else
+	chown admin: "${PRVKEY_FILE}"
+fi
 
 #----------------------------------------------------------#
 #                       Hestia                             #
