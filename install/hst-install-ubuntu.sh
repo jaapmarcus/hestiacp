@@ -630,7 +630,7 @@ else
 fi
 
 if [ -z "$vpass" ]; then
-	while validate_password; do
+	while [ -z "$vpass" ]; do
 		read -p 'Please enter administrator password: ' vpass
 	done
 fi
