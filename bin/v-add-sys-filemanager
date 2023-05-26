@@ -91,7 +91,7 @@ if [ $? -ne 0 ]; then
 	echo "ERROR: File Manager installation failed!"
 	echo "Please report this to our development team:"
 	echo "https://github.com/hestiacp/hestiacp/issues"
-	$BIN/v-add-user-notification admin 'File Manager installation failed!' 'Please <a href="https://github.com/hestiacp/hestiacp/issues" target="_blank">open an issue on GitHub</a> to report this to our development team.'
+	$BIN/v-add-user-notification "$ROOT_USER" 'File Manager installation failed!' 'Please <a href="https://github.com/hestiacp/hestiacp/issues" target="_blank">open an issue on GitHub</a> to report this to our development team.'
 	# Installation failed, clean up files
 	rm --recursive --force ${FM_INSTALL_DIR}
 	$BIN/v-change-sys-config-value 'FILE_MANAGER' 'false'
