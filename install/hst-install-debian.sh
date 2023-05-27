@@ -1045,7 +1045,7 @@ echo "[ * ] Configuring system settings..."
 
 random_password=$(gen_pass 32)
 # Create a new username set the random password and create no home dir
-usr/sbin/useradd "hestiaweb" -s "$shell" -c "$email" -m --no-create-home -U
+usr/sbin/useradd "hestiaweb" -s "$shell" -c "$email" --no-create-home -U
 # do not allow login into hestiaweb user
 echo hestiaweb:$random_password | sudo chpasswd -e
 

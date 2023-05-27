@@ -1037,13 +1037,13 @@ rm -f /usr/sbin/policy-rc.d
 #----------------------------------------------------------#
 
 echo "[ * ] Configuring system settings..."
-
 random_password=$(gen_pass 32)
 # Create a new username set the random password and create no home dir
-/usr/sbin/useradd "hestiaweb" -s "$shell" -c "$email" -m --no-create-home -U
+/usr/sbin/useradd "hestiaweb" -s "$shell" -c "$email" --no-create-home -U
 # do not allow login into hestiaweb user
 echo hestiaweb:$random_password | sudo chpasswd -e
 
+echo "[ * ] Update SSH settings / Enable SFTP Support"
 # Enable SFTP subsystem for SSH
 sftp_subsys_enabled=$(grep -iE "^#?.*subsystem.+(sftp )?sftp-server" /etc/ssh/sshd_config)
 if [ -n "$sftp_subsys_enabled" ]; then
@@ -1063,6 +1063,11 @@ if [ -z "$(grep "^DebianBanner no" /etc/ssh/sshd_config)" ]; then
 	fi
 fi
 
+# Register /usr/sbin/nologin
+if [ -z "$(grep nologin /etc/shells)" ]; then
+	echo "/usr/sbin/nologin" >> /etc/shells
+fi
+
 # Restart SSH daemon
 systemctl restart ssh
 
@@ -1076,10 +1081,7 @@ if [ -z "$(grep 'LS_COLORS="$LS_COLORS:di=00;33"' /etc/profile)" ]; then
 	echo 'LS_COLORS="$LS_COLORS:di=00;33"' >> /etc/profile
 fi
 
-# Register /usr/sbin/nologin
-if [ -z "$(grep nologin /etc/shells)" ]; then
-	echo "/usr/sbin/nologin" >> /etc/shells
-fi
+echo "[ * ] Configuring NTP"
 
 # Configuring NTP
 sed -i 's/#NTP=/NTP=pool.ntp.org/' /etc/systemd/timesyncd.conf
@@ -1402,6 +1404,7 @@ check_result $? "can't enable sftp jail"
 echo "[ * ] Create admin account..."
 $HESTIA/bin/v-add-user "$username" "$vpass" "$email" "system" "System Administrator"
 check_result $? "can't create admin user"
+echo "[ * ] Update admin account..."
 $HESTIA/bin/v-change-user-shell "$username" "nologin"
 $HESTIA/bin/v-change-user-role "$username" "admin"
 $HESTIA/bin/v-change-user-language "$username" "$lang"
