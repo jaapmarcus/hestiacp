@@ -2096,10 +2096,6 @@ check_result $? "can't create $servername domain"
 
 # Adding cron jobs
 export SCHEDULED_RESTART="yes"
-command="sudo $HESTIA/bin/v-update-sys-queue restart"
-$HESTIA/bin/v-add-cron-job 'admin' '*/2' '*' '*' '*' '*' "$command"
-systemctl restart cron
-
 min=$(gen_pass '012345' '2')
 hour=$(gen_pass '1234567' '1')
 echo "MAILTO=$email" > /etc/cron.d/hestiaweb
@@ -2115,6 +2111,7 @@ echo "20 00 * * * sudo /usr/local/hestia/bin/v-update-user-stats" >> /etc/cron.d
 echo "*/5 * * * * sudo /usr/local/hestia/bin/v-update-sys-rrd" >> /etc/cron.d/hestiaweb
 echo "$min $hour * * * sudo /usr/local/hestia/bin/v-update-letsencrypt-ssl" >> /etc/cron.d/hestiaweb
 echo "41 4 * * * sudo /usr/local/hestia/bin/v-update-sys-hestia-all" >> /etc/cron.d/hestiaweb
+systemctl restart cron
 
 # Enable automatic updates
 $HESTIA/bin/v-add-cron-hestia-autoupdate apt
