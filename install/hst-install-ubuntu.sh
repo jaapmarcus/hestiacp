@@ -2160,7 +2160,7 @@ systemctl restart cron
 # Enable automatic updates
 $HESTIA/bin/v-add-cron-hestia-autoupdate apt
 
-echo "[ * ] Setup RTD..."
+echo "[ * ] Setup RRD..."
 
 # Building initital rrd images
 $HESTIA/bin/v-update-sys-rrd
