@@ -2087,9 +2087,11 @@ local_ip="$primary_ipv4"
 
 # Configuring firewall
 if [ "$iptables" = 'yes' ]; then
+	echo "[ * ] Setup Firewall..."
 	$HESTIA/bin/v-update-firewall
 fi
 
+echo "[ * ] Setup Public IP..."
 # Get public IP
 pub_ipv4="$(curl -fsLm5 --retry 2 --ipv4 https://ip.hestiacp.com/)"
 if [ -n "$pub_ipv4" ] && [ "$pub_ipv4" != "$ip" ]; then
@@ -2132,6 +2134,7 @@ if [ "$apache" = 'yes' ] && [ "$nginx" = 'yes' ]; then
 	systemctl restart apache2
 fi
 
+echo "[ * ] Setup Hostname..."
 # Adding default domain
 $HESTIA/bin/v-add-web-domain "$username" "$servername" "$ip"
 check_result $? "can't create $servername domain"
@@ -2157,6 +2160,8 @@ systemctl restart cron
 # Enable automatic updates
 $HESTIA/bin/v-add-cron-hestia-autoupdate apt
 
+echo "[ * ] Setup RTD..."
+
 # Building initital rrd images
 $HESTIA/bin/v-update-sys-rrd
 
@@ -2164,6 +2169,8 @@ $HESTIA/bin/v-update-sys-rrd
 if [ "$quota" = 'yes' ]; then
 	$HESTIA/bin/v-add-sys-quota
 fi
+
+echo "[ * ] Setup Hestia Port..."
 
 # Set backend port
 $HESTIA/bin/v-change-sys-port $port > /dev/null 2>&1
